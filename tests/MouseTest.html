@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Flipper Mouse Test</title>
+<style>
+body{font:18px system-ui;background:#101827;color:#eaf1ff;margin:32px}h1{font-size:28px}#pad{height:400px;border:2px solid #6383b1;border-radius:18px;position:relative;overflow:auto;background:#19283d}#target{position:absolute;left:100px;top:100px;width:90px;height:90px;background:#51d8bc;color:#10231f;border-radius:18px;display:grid;place-items:center;user-select:none;touch-action:none}#content{height:1000px;pointer-events:none}#stats{margin:16px 0;font:16px ui-monospace}#log{height:190px;overflow:auto;white-space:pre-wrap;background:#07111c;padding:14px;border-radius:10px}
+</style><h1>Flipper USB mouse test</h1><p>Use this area to verify movement, left/right/middle clicks, double-clicks, scrolling, and dragging. BACK on the Flipper stops the bridge.</p><div id="stats">Waiting for mouse events</div><div id="pad"><div id="content"></div><div id="target">Drag me</div></div><pre id="log"></pre>
+<script>
+const pad=document.querySelector('#pad'),target=document.querySelector('#target'),output=document.querySelector('#log'),stats=document.querySelector('#stats');
+const counts={move:0,down:0,up:0,click:0,double:0,wheel:0,drag:0};let origin=null;const history=[];
+function log(t){stats.textContent=JSON.stringify(counts);history.push(t);output.textContent=history.slice(-25).join('\n');output.scrollTop=output.scrollHeight;}
+pad.addEventListener('contextmenu',e=>e.preventDefault());
+pad.addEventListener('pointermove',e=>{counts.move++;stats.textContent=JSON.stringify({...counts,x:e.clientX,y:e.clientY,buttons:e.buttons});if(origin){target.style.left=origin.left+e.clientX-origin.x+'px';target.style.top=origin.top+e.clientY-origin.y+'px';counts.drag++;}});
+pad.addEventListener('pointerdown',e=>{counts.down++;log(`DOWN button=${e.button} buttons=${e.buttons} at ${e.clientX},${e.clientY}`);if(e.button===0){origin={x:e.clientX,y:e.clientY,left:target.offsetLeft,top:target.offsetTop};target.setPointerCapture(e.pointerId);}});
+pad.addEventListener('pointerup',e=>{counts.up++;log(`UP button=${e.button} buttons=${e.buttons} at ${e.clientX},${e.clientY}`);if(origin)log(`DRAG ended at ${target.offsetLeft},${target.offsetTop}`);origin=null;});
+pad.addEventListener('click',e=>{counts.click++;log('CLICK '+e.button);});
+pad.addEventListener('auxclick',e=>{e.preventDefault();log('AUXCLICK '+e.button);});
+pad.addEventListener('dblclick',()=>{counts.double++;log('DOUBLE CLICK');});
+pad.addEventListener('wheel',e=>{counts.wheel++;log('WHEEL '+e.deltaY);},{passive:true});
+window.flipperTest={counts,history,getTarget:()=>({left:target.offsetLeft,top:target.offsetTop})};
+</script></html>

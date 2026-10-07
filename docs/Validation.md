@@ -1,0 +1,33 @@
+# Flipper Mouse Bridge validation — 7 October 2026
+
+The bridge was built and installed on the development MacBook Pro and Flipper Zero. Bluetooth carries control commands; the attached USB cable carries the mouse input back to macOS.
+
+| Check | Result |
+| --- | --- |
+| Official firmware | Device reported 1.4.3, API 87.1, target 7 |
+| Flipper build | Official uFBT compiler completed successfully |
+| Installation | `/ext/apps/Tools/ble_usb_mouse.fap`; device read-back SHA256 matches the build |
+| Mac app signature | Installed app passes strict codesign verification; local ad-hoc signature |
+| Mac Bluetooth permission | Enabled and pairing completed by the user |
+| Live Bluetooth RPC | Connected; app started; PING returned PONG; ARM returned ARMED |
+| Live USB movement | Observed browser pointer movement after the Flipper MOVE/DRAG commands |
+| Left/right/middle clicks | Observed button 0/2/1 down and up events; right/middle auxiliary clicks |
+| Double-click | Browser reported DOUBLE CLICK and double count 1 |
+| Vertical wheel | Browser received wheel event with delta -4.000244140625 from SCROLL -3 |
+| Sustained drag | DRAG 120 -60 800 produced 62 held-button movement updates; target moved from 100,100 to about 143,78; release observed |
+| Stop during drag | STOP during DRAG 500 0 3000 disconnected Bluetooth; button-up observed after only about 19 screen points of motion |
+| USB restoration | Normal USB serial interface returned after stopping |
+| Reconnection | Second Bluetooth session started successfully; PING/ARM passed |
+| Native Kingshot | PASS: DRAG 240 0 1000 visibly panned the city map right; DRAG -240 0 1000 visibly panned it left; no building panel opened |
+| Physical BACK button | Implemented; not yet pressed in a live test |
+| GUI control window | Opened successfully; Stop ended the connection attempt. Three-second mouse-command delay implemented; live mouse tests used CLI mode |
+
+Command tests exercised the actual C command handler with a mock USB interface: arming, input bounds, double-click timing, scroll, drag interpolation, cancellation, failed reports, and release behavior passed. Swift protocol tests passed varint boundaries, partial frames, nested application data, and truncated fields. These tests supplement the live device tests above.
+
+HID counts are relative, not screen pixels. macOS acceleration changes the distance. Precision positioning needs feedback from the screen and calibration. Three buttons, double-click, vertical wheel, and left-button dragging are supported. Horizontal wheel, additional buttons, and trackpad gestures are outside this version. Long unattended use, sleep/wake, cable removal, and abrupt power loss have not been tested.
+
+Installed FAP SHA256: `30836d1a1fe2e390af5b0965ffb1f37ada746e6c264c1c09034d0e63d5c6c995`.
+
+After the Kingshot test, stopping restored the normal USB serial interface. A further CLI reconnection reached Bridge ready; discovery can take some time after disconnecting.
+
+Public-source packaging verification: the device name is configurable and the bundle identifier is generic. Compilation, signature verification, and both test suites were repeated; the installed hardware build was retained.

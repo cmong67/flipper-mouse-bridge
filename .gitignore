@@ -1,0 +1,6 @@
+dist/
+.venv/
+__pycache__/
+.DS_Store
+flipper_mouse/dist/
+flipper_mouse/.ufbt/

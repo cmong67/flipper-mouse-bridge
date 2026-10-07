@@ -1,8 +1,8 @@
 # Flipper Mouse Bridge
 
-Control a USB mouse on macOS through a Flipper Zero, with Bluetooth carrying commands and USB carrying mouse input. Built for official Flipper firmware 1.4.3. Browser mouse tests and two-direction map dragging in native Kingshot passed on the development setup on 7 October 2026.
+Control a USB mouse on macOS through a Flipper Zero, with Bluetooth carrying commands and USB carrying mouse input. Built for official Flipper firmware 1.4.3. Browser mouse tests and broad native Kingshot navigation passed on the development setup on 7 October 2026.
 
-Read the [full development paper](docs/Development-Paper.md), [validation record](docs/Validation.md), and [optimization roadmap](docs/Roadmap.md). This is a supervised input bridge; precise screen targeting and complete gameplay workflows remain follow-up work.
+Read the [Kingshot qualification report](docs/Kingshot-Qualification.md), [full development paper](docs/Development-Paper.md), [validation record](docs/Validation.md), and [optimization roadmap](docs/Roadmap.md). This is a supervised input bridge; precise screen targeting and complete gameplay workflows remain follow-up work.
 
 ## Build
 

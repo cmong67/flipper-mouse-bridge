@@ -39,3 +39,9 @@ PASS for an assistant-orchestrated sequence with no user pointer placement. The 
 Window raising alone did not activate Kingshot; the harmless ground click established focus. Relative HID counts were corrected against measured cursor location, rather than assumed to equal pixels. STOP disconnected the command channel successfully; the normal USB serial device reappeared afterward.
 
 This demonstrates automated bridge startup, window presentation, physical pointer positioning, focus and a building-selection click. It does not qualify cold-starting a closed game, macOS full-screen mode, a standalone one-button routine, or the twenty-target precision acceptance criterion. The game was already open, and the assistant chose corrections from observations. The GUI control window was closed during CLI operation, so its absence did not mean the bridge was stopped.
+
+## Broad Kingshot navigation qualification — 7 October 2026
+
+Castle and world maps passed four-direction and diagonal dragging. Building details, Heroes and its Stats/Skills/Gear tabs, all five Backpack categories, Alliance members, Events tabs/task list, Governor Profile and Conquest navigation were verified. Scrollable lists responded to held left-button dragging. Isolated wheel commands produced no visible scrolling or zooming in the tested game surfaces. Right/middle clicks and a world-ground double-click were acknowledged but had no distinct useful effect. No user pointer placement was needed. The game returned to castle view; STOP restored normal USB and the controller exited.
+
+Read the [full qualification report](Kingshot-Qualification.md) for individual outcomes, method, limits and priorities. This broad navigation test does not qualify every game action, full-screen mode, cold startup, fault recovery or unattended gameplay.

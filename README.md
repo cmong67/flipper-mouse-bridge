@@ -2,7 +2,7 @@
 
 Control a USB mouse on macOS through a Flipper Zero, with Bluetooth carrying commands and USB carrying mouse input. Built for official Flipper firmware 1.4.3. Browser mouse tests and broad native Kingshot navigation passed on the development setup on 7 October 2026.
 
-Read the [Kingshot qualification report](docs/Kingshot-Qualification.md), [full development paper](docs/Development-Paper.md), [validation record](docs/Validation.md), and [optimization roadmap](docs/Roadmap.md). This is a supervised input bridge; precise screen targeting and complete gameplay workflows remain follow-up work.
+Read the [Kingshot qualification report](docs/Kingshot-Qualification.md), [full development paper](docs/Development-Paper.md), [validation record](docs/Validation.md), and [optimization roadmap](docs/Roadmap.md). This is a supervised input bridge; feedback positioning passed twenty targets; a built-in startup routine and complete gameplay workflows remain follow-up work.
 
 ## Build
 
@@ -51,3 +51,5 @@ MOVE/SCROLL accept −127…127; DRAG accepts ±2000 per axis and 100…3000 ms.
 The original installed build passed browser click/scroll/drag/cancellation tests and native Kingshot map pans. Public source only changes the device-name configuration and application identity; it was compiled and protocol/command tests passed. The GUI's delayed gesture flow, sleep/wake, cable loss, and prolonged unattended use remain unqualified. The Mac build uses a local ad-hoc signature, not Apple notarization.
 
 Sources: [official firmware](https://github.com/flipperdevices/flipperzero-firmware/tree/1.4.3), [uFBT](https://github.com/flipperdevices/flipperzero-ufbt). See the paper for architecture, evidence, and references.
+
+The [round 2 report](docs/Kingshot-Round-2.md) adds twenty-target positioning, cold game launch, basic full-screen navigation and idle-controller recovery. Startup needs a harmless focus click before selecting a game control.

@@ -8,6 +8,10 @@ The bridge is verified for mouse delivery, four-direction and diagonal dragging 
 4. **Supervised gameplay:** qualify harmless panel opening/return and map pans, with observation before and verification after every action.
 5. **Performance and releases:** measure latency/error; pin toolchain; add compatibility coverage; choose licensing and public signing/release strategy.
 
-The development paper explains the rationale and proposed acceptance criteria. The single automated targeting trial is recorded in Validation; the broader acceptance targets remain pending.
+The development paper explains the rationale and proposed acceptance criteria. The twenty-target positioning criterion passed in round 2. Recovery is partly qualified: normal stop and idle controller termination restored USB; reconnection required fresh arming. Other fault cases remain pending.
 
 The [broad Kingshot qualification](Kingshot-Qualification.md) records the expanded navigation coverage. Reusable startup/focus/positioning, precision measurement and recovery remain the next milestones.
+
+## Updated priorities after round 2
+
+Twenty-target positioning, cold launch and basic full-screen navigation passed; see [round 2](Kingshot-Round-2.md). Prioritize packaging startup/focus/state verification, calibrating movement to reduce the measured 3.350-second mean positioning time, then held-button and physical-device recovery. The existing positioning code is test orchestration, not a shipped controller feature.

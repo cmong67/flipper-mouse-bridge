@@ -37,208 +37,208 @@ func fields(_ bytes: [UInt8]) -> [Int: [UInt8]] {
     return result
 }
 func numeric(_ bytes: [UInt8]?) -> UInt64 { var i=0; return readVarint(bytes ?? [0],&i) ?? 0 }
-var displayLog: ((String)->Void)?
-func log(_ message: String) { print(message); fflush(stdout); displayLog?(message) }
+
+enum BridgeState: String {
+    case disconnected="Disconnected", scanning="Finding Flipper", connecting="Connecting", starting="Starting bridge", ready="Ready — mouse disabled", armed="Ready — mouse enabled", stopping="Stopping", failed="Connection failed"
+}
 
 final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
-    let target: String
-    var manager: CBCentralManager!
-    var device: CBPeripheral?
-    var rx: CBCharacteristic?
-    var buffer=[UInt8]()
-    var nextID: UInt64=1
-    var pending: UInt64?
-    var waitingResult=false
-    var started=false
-    var queue=[String]()
-    var timeout: DispatchWorkItem?
-    var exiting=false
-    let txUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E61FE0000")
-    let rxUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E62FE0000")
-    let serviceUUID=CBUUID(string:"8FE5B3D5-2E7F-4A98-2A48-7ACC60FE0000")
-    init(target: String) {
-        self.target=target
-        super.init()
-        manager=CBCentralManager(delegate:self,queue:.main)
+    private(set) var state: BridgeState = .disconnected
+    var onState: ((BridgeState,String)->Void)?
+    var onLog: ((String)->Void)?
+    private var manager: CBCentralManager!
+    private var device: CBPeripheral?
+    private var rx: CBCharacteristic?
+    private var buffer=[UInt8]()
+    private var nextID: UInt64=1
+    private var pending: UInt64?
+    private var active: QueuedCommand?
+    private var response: String?
+    private var queue=CommandQueue(limit:8)
+    private var timer: DispatchWorkItem?
+    private var target=""
+    private var failure: String?
+    private var stopCompletions=[()->Void]()
+    private let txUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E61FE0000")
+    private let rxUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E62FE0000")
+    private let serviceUUID=CBUUID(string:"8FE5B3D5-2E7F-4A98-2A48-7ACC60FE0000")
+    override init() { super.init(); manager=CBCentralManager(delegate:self,queue:.main) }
+    private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
+    var isArmed: Bool { state == .armed }
+    var canConnect: Bool { state == .disconnected || state == .failed }
+    private func log(_ text: String) { print(text);fflush(stdout);onLog?(text) }
+    private func transition(_ value: BridgeState, _ detail: String="") {
+        state=value; log("State: \(value.rawValue)\(detail.isEmpty ? "" : " · "+detail)");onState?(value,detail)
+    }
+    private func timeout(_ seconds: Double, _ action: @escaping ()->Void) {
+        timer?.cancel();let work=DispatchWorkItem(block:action);timer=work
+        DispatchQueue.main.asyncAfter(deadline:.now()+seconds,execute:work)
+    }
+    func connect(_ name: String) {
+        guard canConnect else { log("Stop the current connection before reconnecting.");return }
+        let name=name.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard !name.isEmpty else { transition(.failed,"Enter a distinctive Flipper name.");return }
+        failure=nil;target=name;rx=nil;buffer.removeAll();pending=nil;response=nil
+        transition(.scanning)
+        timeout(15) { [weak self] in self?.fail("Flipper not found within 15 seconds. Check Bluetooth and device name, then reconnect.") }
+        if manager.state == .poweredOn { scan() }
+        else if manager.state != .unknown && manager.state != .resetting { fail("Bluetooth unavailable or permission denied.") }
+    }
+    private func scan() {
+        log("Bluetooth available; discovering device.")
+        if let saved=UserDefaults.standard.string(forKey:"Peripheral-"+target.lowercased()),let id=UUID(uuidString:saved),let cached=manager.retrievePeripherals(withIdentifiers:[id]).first {
+            centralManager(manager,didDiscover:cached,advertisementData:[:],rssi:0)
+            if state != .scanning { return }
+        }
+        for peripheral in manager.retrieveConnectedPeripherals(withServices:[serviceUUID]) {
+            centralManager(manager,didDiscover:peripheral,advertisementData:[:],rssi:0)
+            if state != .scanning { return }
+        }
+        manager.scanForPeripherals(withServices:nil,options:[CBCentralManagerScanOptionAllowDuplicatesKey:false])
     }
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn {
-            log("Scanning for \(target)…")
-            central.scanForPeripherals(withServices:nil, options:nil)
-        } else { log("Bluetooth state: \(central.state.rawValue) (powered on=5, unauthorized=3)") }
+        if central.state == .poweredOn { if state == .scanning { scan() } }
+        else if !canConnect && state != .stopping && central.state != .unknown && central.state != .resetting {
+            fail("Bluetooth unavailable. Restore Bluetooth, then reconnect and arm a fresh session.")
+        }
     }
-    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String:Any], rssi RSSI: NSNumber) {
+    func centralManager(_ central: CBCentralManager,didDiscover peripheral: CBPeripheral,advertisementData: [String:Any],rssi RSSI:NSNumber) {
+        guard state == .scanning else { return }
         let name=advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name ?? ""
-        guard name.localizedCaseInsensitiveContains(target), device == nil else { return }
-        device=peripheral; peripheral.delegate=self; central.stopScan()
-        log("Connecting to \(name)…"); central.connect(peripheral)
+        guard name.localizedCaseInsensitiveContains(target) else { return }
+        UserDefaults.standard.set(peripheral.identifier.uuidString,forKey:"Peripheral-"+target.lowercased())
+        device=peripheral;peripheral.delegate=self;central.stopScan();transition(.connecting)
+        timeout(20) { [weak self] in self?.fail("Connection or pairing timed out. Confirm pairing on both devices, then reconnect.") }
+        central.connect(peripheral)
     }
-    func centralManager(_ central: CBCentralManager,didConnect peripheral:CBPeripheral) {
-        log("Connected; discovering encrypted RPC service.")
+    func centralManager(_ central:CBCentralManager,didConnect peripheral:CBPeripheral) {
+        guard state == .connecting else { central.cancelPeripheralConnection(peripheral);return }
         peripheral.discoverServices([serviceUUID])
     }
-    func centralManager(_ central:CBCentralManager,didFailToConnect peripheral:CBPeripheral,error:Error?) { fail("Connection failed: \(String(describing:error))") }
-    func centralManager(_ central:CBCentralManager,didDisconnectPeripheral peripheral:CBPeripheral,error:Error?) {
-        log("Disconnected. Flipper will release buttons and restore USB."); exit(exiting ? 0 : 1)
+    func centralManager(_ central:CBCentralManager,didFailToConnect peripheral:CBPeripheral,error:Error?) {
+        guard peripheral == device else { return }
+        failure="Could not connect: \(error?.localizedDescription ?? "connection refused")";finishDisconnect()
     }
+    func centralManager(_ central:CBCentralManager,didDisconnectPeripheral peripheral:CBPeripheral,error:Error?) {
+        guard peripheral == device else { return }
+        if state != .stopping { failure="Connection lost. Reconnect and arm a fresh session." }
+        finishDisconnect()
+    }
+    private func finishDisconnect() {
+        timer?.cancel();manager.stopScan();device?.delegate=nil;device=nil;rx=nil;buffer.removeAll();pending=nil;response=nil
+        let old=active;active=nil;let queued=queue.cancel()
+        transition(failure == nil ? .disconnected : .failed,failure ?? "Mouse commands cleared; Flipper restores USB after disconnect.")
+        old?.completion(.failure(.message("Session ended.")));queued.forEach { $0.completion(.failure(.message("Session ended; action discarded."))) }
+        let callbacks=stopCompletions;stopCompletions.removeAll();callbacks.forEach { $0() }
+    }
+    func stop(completion: (()->Void)? = nil) {
+        if let completion { stopCompletions.append(completion) }
+        if state == .stopping { return }
+        timer?.cancel();manager.stopScan();transition(.stopping)
+        let queued=queue.cancel();queued.forEach { $0.completion(.failure(.message("Stopped; action discarded."))) }
+        if let device {
+            manager.cancelPeripheralConnection(device)
+            // Stay unavailable until CoreBluetooth confirms disconnect. Never open a competing session.
+            timeout(5) { [weak self] in self?.log("Still waiting for Bluetooth disconnect. Unplug Flipper if its mouse remains active.") }
+        } else { finishDisconnect() }
+    }
+    private func fail(_ text:String) { failure=text;log("Error: \(text)");stop() }
     func peripheral(_ peripheral:CBPeripheral,didDiscoverServices error:Error?) {
-        if let error { fail(error.localizedDescription); return }
-        guard let service=peripheral.services?.first else { fail("RPC service absent. Enable Flipper Bluetooth."); return }
-        peripheral.discoverCharacteristics(nil,for:service)
+        guard state == .connecting else { return }
+        if let error { fail(error.localizedDescription);return }
+        guard let service=peripheral.services?.first(where:{$0.uuid==serviceUUID}) else { fail("Flipper RPC service unavailable.");return }
+        peripheral.discoverCharacteristics([rxUUID,txUUID],for:service)
     }
     func peripheral(_ peripheral:CBPeripheral,didDiscoverCharacteristicsFor service:CBService,error:Error?) {
-        if let error { fail(error.localizedDescription); return }
+        guard state == .connecting else { return }
+        if let error { fail(error.localizedDescription);return }
         rx=service.characteristics?.first(where:{$0.uuid==rxUUID})
-        guard let tx=service.characteristics?.first(where:{$0.uuid==txUUID}), rx != nil else { fail("RPC characteristics absent"); return }
-        log("Pairing may require matching the code on Mac and Flipper.")
-        peripheral.setNotifyValue(true,for:tx)
+        guard let tx=service.characteristics?.first(where:{$0.uuid==txUUID}), rx != nil else { fail("Flipper RPC characteristics unavailable.");return }
+        log("Confirm a matching pairing code if requested.");peripheral.setNotifyValue(true,for:tx)
     }
     func peripheral(_ peripheral:CBPeripheral,didUpdateNotificationStateFor characteristic:CBCharacteristic,error:Error?) {
-        if let error { fail("Pairing/notifications: \(error.localizedDescription)"); return }
+        guard state == .connecting else { return }
+        if let error { fail("Pairing: \(error.localizedDescription)");return }
         if characteristic.uuid==txUUID && characteristic.isNotifying {
-            log("RPC notifications ready.")
+            transition(.starting)
             request(16,field(1,Array("/ext/apps/Tools/ble_usb_mouse.fap".utf8))+field(2,Array("RPC".utf8)))
         }
     }
-    func request(_ kind:Int,_ content:[UInt8]) {
-        guard pending==nil, let device, let rx else { fail("Request already pending or disconnected"); return }
-        let id=nextID; nextID+=1; pending=id
+    private func request(_ kind:Int,_ content:[UInt8]) {
+        guard pending==nil,let device,let rx else { fail("RPC request unavailable.");return }
+        let id=nextID;nextID+=1;pending=id
         let payload=number(1,id)+field(kind,content)
         let data=Data(varint(UInt64(payload.count))+payload)
-        // Our bounded commands fit within one authenticated ATT write.
-        guard data.count <= device.maximumWriteValueLength(for:.withResponse) else { fail("Command exceeds Bluetooth write limit"); return }
+        guard data.count <= device.maximumWriteValueLength(for:.withResponse) else { fail("Command exceeds Bluetooth write limit.");return }
         device.writeValue(data,for:rx,type:.withResponse)
-        armTimeout()
-    }
-    func armTimeout() {
-        timeout?.cancel()
-        let work=DispatchWorkItem { [weak self] in self?.fail("Command timed out; disconnecting to release buttons") }
-        timeout=work; DispatchQueue.main.asyncAfter(deadline:.now()+10,execute:work)
+        timeout(10) { [weak self] in self?.fail("Command timed out; disconnecting to release input. No action will be replayed.") }
     }
     func peripheral(_ peripheral:CBPeripheral,didWriteValueFor characteristic:CBCharacteristic,error:Error?) {
-        if let error { fail("Write: \(error.localizedDescription)") }
+        if let error, state != .stopping { fail("Write: \(error.localizedDescription)") }
     }
     func peripheral(_ peripheral:CBPeripheral,didUpdateValueFor characteristic:CBCharacteristic,error:Error?) {
-        if let error { fail(error.localizedDescription); return }
-        guard characteristic.uuid==txUUID, let data=characteristic.value else { return }
+        guard state != .stopping && !canConnect else { return }
+        if let error { fail(error.localizedDescription);return }
+        guard characteristic.uuid==txUUID,let data=characteristic.value else { return }
+        guard buffer.count+data.count <= 131072 else { fail("RPC receive buffer exceeded limit.");return }
         buffer+=data
         while !buffer.isEmpty {
             var prefix=0
-            guard let length=readVarint(buffer,&prefix) else { return }
-            guard length <= 65536 else { fail("Invalid RPC frame"); return }
+            guard let length=readVarint(buffer,&prefix) else {
+                if buffer.count >= 10 { fail("Invalid RPC frame prefix.") };return
+            }
+            guard length <= 65536 else { fail("Invalid RPC frame length.");return }
             guard buffer.count >= prefix+Int(length) else { return }
-            let message=Array(buffer[prefix..<prefix+Int(length)])
-            buffer.removeFirst(prefix+Int(length)); receive(message)
+            let message=Array(buffer[prefix..<prefix+Int(length)]);buffer.removeFirst(prefix+Int(length));receive(message)
+            if state == .stopping || canConnect { return }
         }
     }
-    func receive(_ message:[UInt8]) {
-        let f=fields(message); let id=numeric(f[1]); let status=numeric(f[2])
-        if f[58] != nil {
-            let state=numeric(fields(f[58]!)[1]); log("Flipper app state: \(state)")
-            if state==1 { started=true; log("Bridge ready. Use ARM to enable mouse commands."); if pending==nil { timeout?.cancel(); pump() } }
-            if state==0 && started { exiting=true; if let device { manager.cancelPeripheralConnection(device) } }
+    private func receive(_ message:[UInt8]) {
+        let f=fields(message),id=numeric(f[1]),status=numeric(f[2])
+        if let event=f[58] {
+            let appState=numeric(fields(event)[1])
+            if appState==1 && state == .starting { transition(.ready);if pending==nil { timer?.cancel();pump() } }
+            if appState==0 && (state == .ready || state == .armed) { failure="Flipper app stopped. Reconnect to start a fresh session.";stop();return }
         }
-        if let exchange=f[65], let bytes=fields(exchange)[1] {
-            let response=String(decoding:bytes,as:UTF8.self); log("Flipper: \(response)")
-            waitingResult=false
-            if pending==nil { timeout?.cancel(); pump() }
+        if let exchange=f[65],let bytes=fields(exchange)[1],active != nil {
+            response=String(decoding:bytes,as:UTF8.self)
         }
         if pending==id {
-            if status != 0 { fail("Flipper rejected request (status \(status))"); return }
+            guard status==0 else { fail("Flipper rejected RPC request (status \(status)).");return }
             pending=nil
-            if !started { armTimeout(); return }
-            if !waitingResult { timeout?.cancel(); pump() }
         }
+        if active != nil { finishCommandIfReady() }
+        else if pending==nil && (state == .ready || state == .armed) { timer?.cancel();pump() }
     }
-    func submit(_ text:String) {
-        let command=text.trimmingCharacters(in:.whitespacesAndNewlines).uppercased()
-        guard !command.isEmpty else { return }
-        if command=="QUIT" || command=="STOP" || command=="RELEASE" {
-            exiting=true
-            log("Stopping by disconnecting the Bluetooth control channel.")
-            if let device { manager.cancelPeripheralConnection(device) } else { exit(0) }
-            return
+    private func finishCommandIfReady() {
+        guard pending==nil,let result=response,let item=active else { return }
+        timer?.cancel();active=nil;response=nil;log("Flipper: \(result)")
+        if result.hasPrefix("ERROR") || result=="STOPPED" {
+            if item.command == .arm { transition(.ready) }
+            item.completion(.failure(.message(result)))
+        } else {
+            if item.command == .arm {
+                guard result=="ARMED" else { item.completion(.failure(.message("Unexpected ARM response.")));fail("Could not verify arming.");return }
+                transition(.armed)
+            }
+            item.completion(.success(result))
         }
-        guard command.utf8.count<96 else { log("Command too long"); return }
-        queue.append(command); pump()
+        pump()
     }
-    func pump() {
-        guard started, pending==nil, !waitingResult, !queue.isEmpty else { return }
-        let command=queue.removeFirst(); log("Sending: \(command)")
-        waitingResult=true
-        request(65,field(1,Array(command.utf8)))
+    func submit(_ command:MouseCommand,completion:@escaping Completion = { _ in }) {
+        guard state == .ready || state == .armed else { completion(.failure(.message("Connect and wait for Ready first.")));return }
+        guard !command.needsArm || isArmed else { completion(.failure(.message("Mouse disabled. Arm this session first.")));return }
+        guard queue.append(command,now:now,completion:completion) else { completion(.failure(.message("Command queue full; action rejected.")));return }
+        pump()
     }
-    func fail(_ message:String) {
-        log("ERROR: \(message)")
-        queue.removeAll(); timeout?.cancel()
-        if let device { manager.cancelPeripheralConnection(device) }
-        DispatchQueue.main.asyncAfter(deadline:.now()+1) { exit(1) }
-    }
-}
-final class ControlPanel: NSObject, NSApplicationDelegate {
-    var bridge: MouseBridge!
-    var window: NSWindow!
-    let entry=NSTextField(string:"PING")
-    let status=NSTextField(wrappingLabelWithString:"Starting Bluetooth…")
-    let logView=NSTextView()
-    var scheduled: DispatchWorkItem?
-    func applicationDidFinishLaunching(_ notification:Notification) {
-        window=NSWindow(contentRect:NSRect(x:0,y:0,width:650,height:460),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title="Flipper Mouse Bridge"; window.center()
-        let view=window.contentView!
-        status.frame=NSRect(x:20,y:390,width:610,height:50); view.addSubview(status)
-        let help=NSTextField(wrappingLabelWithString:"USB cable + Bluetooth. Start with ARM. Commands: MOVE x y · CLICK button count (1 left, 2 right, 4 middle) · SCROLL delta · DRAG x y ms. BACK on Flipper stops and releases. Mouse commands wait 3 seconds so you can focus the target window.")
-        help.frame=NSRect(x:20,y:320,width:610,height:65); view.addSubview(help)
-        entry.frame=NSRect(x:20,y:280,width:430,height:28); entry.target=self; entry.action=#selector(send); view.addSubview(entry)
-        let sendButton=NSButton(title:"Send",target:self,action:#selector(send)); sendButton.frame=NSRect(x:460,y:278,width:75,height:32); view.addSubview(sendButton)
-        let stop=NSButton(title:"Stop",target:self,action:#selector(stop)); stop.frame=NSRect(x:545,y:278,width:80,height:32); view.addSubview(stop)
-        let scroll=NSScrollView(frame:NSRect(x:20,y:20,width:610,height:245)); scroll.hasVerticalScroller=true
-        logView.isEditable=false; logView.font=NSFont.monospacedSystemFont(ofSize:12,weight:.regular); scroll.documentView=logView; view.addSubview(scroll)
-        displayLog={ [weak self] message in
-            guard let self else { return }; self.status.stringValue=message
-            self.logView.string += message+"\n"; self.logView.scrollToEndOfDocument(nil)
+    private func pump() {
+        guard (state == .ready || state == .armed),pending==nil,active==nil else { return }
+        let (next,expired)=queue.next(now:now)
+        expired.forEach { $0.completion(.failure(.message("Queued action expired; submit a fresh action."))) }
+        guard pending==nil,active==nil,state == .ready || state == .armed,let item=next else {
+            next?.completion(.failure(.message("Session changed; action discarded.")));return
         }
-        window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
-        bridge=MouseBridge(target:CommandLine.arguments.dropFirst().first(where: { !$0.hasPrefix("--") }) ?? "Flipper")
+        guard !item.command.needsArm || isArmed else { item.completion(.failure(.message("Session is not armed.")));pump();return }
+        active=item;response=nil;log("Sending: \(item.command.text)");request(65,field(1,Array(item.command.text.utf8)))
     }
-    @objc func send() {
-        let command=entry.stringValue.trimmingCharacters(in:.whitespacesAndNewlines).uppercased()
-        scheduled?.cancel()
-        if command=="STOP" || command=="RELEASE" || command=="QUIT" { stop(); return }
-        if command=="PING" || command=="ARM" { bridge.submit(command); return }
-        log("Sending in 3 seconds: \(command). Focus the target window now.")
-        let work=DispatchWorkItem { [weak self] in self?.bridge.submit(command) }
-        scheduled=work; DispatchQueue.main.asyncAfter(deadline:.now()+3,execute:work)
-    }
-    @objc func stop() { scheduled?.cancel(); bridge.submit("STOP") }
-    func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply { scheduled?.cancel(); bridge?.submit("STOP"); return .terminateCancel }
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication)->Bool { true }
-}
-if CommandLine.arguments.contains("--self-test") {
-    for value: UInt64 in [0,1,127,128,16383,16384,UInt64.max] {
-        let encoded=varint(value); var i=0
-        precondition(readVarint(encoded,&i)==value && i==encoded.count)
-    }
-    var index=0
-    precondition(readVarint([128],&index)==nil && index==0)
-    let payload=number(1,7)+field(65,field(1,Array("DRAG 120 0 1000".utf8)))
-    let decoded=fields(payload)
-    precondition(numeric(decoded[1])==7)
-    precondition(fields(decoded[65]!)[1]==Array("DRAG 120 0 1000".utf8))
-    precondition(fields(field(1,[1,2,3]).dropLast().map{$0}).isEmpty)
-    print("PASS: RPC varint boundaries, partial frames, nested application data, truncated fields")
-    exit(0)
-}
-let gui = !CommandLine.arguments.contains("--cli") && (CommandLine.arguments.contains("--gui") || CommandLine.arguments[0].contains(".app/Contents/MacOS/"))
-if gui {
-    let app=NSApplication.shared
-    let panel=ControlPanel(); app.delegate=panel; app.setActivationPolicy(.regular); app.run()
-} else {
-    let target=CommandLine.arguments.dropFirst().first(where: { !$0.hasPrefix("--") }) ?? "Flipper"
-    let bridge=MouseBridge(target:target)
-    DispatchQueue.global().async {
-        while let line=readLine() { DispatchQueue.main.async { bridge.submit(line) } }
-        DispatchQueue.main.async { bridge.submit("STOP") }
-    }
-    RunLoop.main.run()
 }

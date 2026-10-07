@@ -128,3 +128,11 @@ The public repository contains source, a browser fixture, command tests, build i
 - [Flipper USB HID API](https://github.com/flipperdevices/flipperzero-firmware/blob/1.4.3/targets/furi_hal_include/furi_hal_usb_hid.h)
 - [Official uFBT build tool](https://github.com/flipperdevices/flipperzero-ufbt)
 - [Apple cached-peripheral retrieval](https://developer.apple.com/documentation/corebluetooth/cbcentralmanager/retrieveperipherals(withidentifiers:))
+
+## Automated focus and pointer test — 7 October 2026
+
+PASS for an assistant-orchestrated sequence with no user pointer placement. The bridge was launched in CLI mode, Bluetooth connected, and PING/PONG and ARM/ARMED confirmed. The already-running native Kingshot window was raised. A read-only CoreGraphics observer measured the physical pointer in logical screen coordinates; bounded Flipper MOVE commands corrected its position into clear ground. A Flipper left click activated Kingshot, confirmed by the frontmost application name. A further move and left click selected the Infirmary: the game displayed “30 Infirmary” and Details/Heal controls. No Heal action was taken.
+
+Window raising alone did not activate Kingshot; the harmless ground click established focus. Relative HID counts were corrected against measured cursor location, rather than assumed to equal pixels. STOP disconnected the command channel successfully; the normal USB serial device reappeared afterward.
+
+This demonstrates automated bridge startup, window presentation, physical pointer positioning, focus and a building-selection click. It does not qualify cold-starting a closed game, macOS full-screen mode, a standalone one-button routine, or the twenty-target precision acceptance criterion. The game was already open, and the assistant chose corrections from observations. The GUI control window was closed during CLI operation, so its absence did not mean the bridge was stopped.

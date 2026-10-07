@@ -31,12 +31,15 @@ Modern macOS activation initially failed with the older activation call. The cor
 | Edge target | ACTION 0 0 CLICK 1 1 was rejected before clicking |
 | Same-process recovery | DISCONNECT then CONNECT returned to Ready; PING passed and unarmed MOVE was rejected |
 | Normal shutdown | STOP disconnected; controller exited cleanly |
+| GUI interaction | Connect, Enable mouse, Prepare Kingshot, movement-only Send and Stop passed on retry |
 
 The twenty-target run finished with mean error 3.58 points and maximum 3.99 points. Mean elapsed positioning time was 1.49 seconds, with a 0.460–1.874-second range; mean correction count was 6.45 moves, with a 2–8 range. The earlier run averaged 3.35 seconds with more external observation/tool overhead. The observed reduction is useful end-to-end evidence, not a controlled transport latency comparison. This run used the same correction loop shipped in the final build; subsequent changes concerned foreground activation, GUI input validation and same-process CLI disconnect.
 
 ## Limits and next acceptance gates
 
-The GUI window was observed running, but native UI automation could not reliably resolve the replacement app identity. Full GUI button interaction remains unqualified; CLI tests exercise the shared controller and targeting logic. Earlier browser/game click-and-drag results apply to the unchanged Flipper companion and older controller, not a complete qualification of every v0.2 GUI action.
+A subsequent GUI session resolved the replacement app identity. Connect and Enable mouse passed. The first Prepare attempt remained pending and was cancelled with Stop; its cause remains unresolved. After reconnecting and arming, Prepare passed with 3.59-point final error, six hardware moves and 1.431 seconds of positioning. Send at 50/50 with MOVE 0 0 returned DONE. Stop returned to Disconnected and normal USB serial reappeared. This establishes a successful GUI path on retry, not reliable repeatability or cold-launch qualification. Earlier browser/game click-and-drag results apply to the unchanged Flipper companion and older controller, not a complete qualification of every v0.2 GUI action.
+
+Investigate the intermittent Prepare wait, add a deadline covering the whole launch operation if needed, and repeat preparation from both running and closed game states. Keep this acceptance gate open until reproducible recovery is demonstrated.
 
 Test physical BACK, actual Bluetooth interruption, cable removal, sleep/wake and abrupt faults while a button is held. Verify that the pointer/button state and normal USB recover and that no old action is replayed. Then test multiple Spaces/displays, game loading transitions and longer supervised sessions. Window/focus checks do not recognize the game screen or continuously police another application taking focus throughout a held drag. Raw CLI mouse commands intentionally do not enforce game focus.
 

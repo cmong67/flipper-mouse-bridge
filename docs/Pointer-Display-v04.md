@@ -33,7 +33,7 @@ The existing exact-target activation fix is included: unhide and request all win
 - Swift protocol/pointer/queue/RPC self-tests passed; C harness passed real command-handler bounds, arming, gesture interruption and button-release cases, plus display-only POS validity and zero HID output.
 - Optimized Mac build and strict installed code-signature verification passed. Flipper APPCHK passed; installed FAP readback matched the built file byte-for-byte.
 - Offline dashboard and synthetic 20-position-tail render inspected for layout.
-- Live connection and coordinate acknowledgements: pending owner authentication for the scoped refresh of the existing Bluetooth grant. No gameplay or new HID action was used for the upgrade.
+- Live qualification passed after owner Touch ID refreshed the existing Bluetooth grant: GUI Ready/SAFE, installed CLI position acknowledgement counts 6 → 10 → 15 across two approximately two-second intervals, PING/PONG, reconnect to SAFE and acknowledgement count 20, then normal STOP and USB serial restoration. The sampled stationary feed acknowledged approximately 2.25 updates/second across the middle four seconds; no guaranteed rate is claimed. No ARM, target selection, gameplay or HID action was used. The unchanged installed executable hash and strict signature were reverified. The final GUI was reopened and connected SAFE for live display. Physical LCD appearance and busy-action stale indication were not directly observed.
 
 Installed Mac executable SHA256: `7a2c9aa866ced24415d1923daf015662c7aefba8539a0a25c75851c8b76df0d3`.
 

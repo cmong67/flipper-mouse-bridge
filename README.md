@@ -8,7 +8,7 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 
 ## Version 0.4 — installed display update
 
-Mac 0.4.0 build 5 and AI HID CTRL 0.4 are installed. The Mac map uses a fading tail of the last 20 positions. The Flipper keeps logical screen X/Y visible through a bounded idle-channel feed and marks readings OLD after one second without an update. Live connection verification is awaiting the owner’s Bluetooth permission refresh. See [release evidence and limits](docs/Pointer-Display-v04.md).
+Mac 0.4.0 build 5 and AI HID CTRL 0.4 are installed. The Mac map uses a fading tail of the last 20 positions. The Flipper keeps logical screen X/Y visible through a bounded idle-channel feed and marks readings OLD after one second without an update. Live reconnect and coordinate acknowledgements passed with mouse control disabled after the owner refreshed the existing Bluetooth permission. See [release evidence and limits](docs/Pointer-Display-v04.md).
 
 ## Version 0.3 — historical supervised qualification passed
 

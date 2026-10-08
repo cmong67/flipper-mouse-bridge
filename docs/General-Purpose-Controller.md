@@ -1,6 +1,6 @@
 # General-purpose controller and companion dashboard — v0.3
 
-Status: **v0.3 candidate; GUI Bluetooth startup unresolved.**
+Status: **v0.3 installed; final-build GUI/CLI browser qualification passed.**
 
 Date:2026-10-08, Asia/Hong_Kong. Lead-performed design/code review; no independent reviewer was dispatched.
 
@@ -60,35 +60,47 @@ Display updates at command boundaries and every250 ms when idle. Long drags show
 
 Both native Mac and Flipper builds compile. Mac self-tests cover command bounds, queue expiry/cancellation/dispatch guard, adaptive-step limits and invalid feedback, and RPC framing. The existing harness executes the actual C input handler for arm/bounds/click/scroll/drag/interruption/report failure/button release. Offscreen Mac dashboard render was visually reviewed without activating a window or competing with gameplay.
 
-Installed hardware results and the remaining GUI release gate are recorded below. USB removal, Bluetooth interruption while held, sleep/wake, multi-display/Spaces and long-session behavior are separate fault qualifications; successful compilation is not those tests. Existing historical0.2 hardware qualifications apply only to that version.
+Installed hardware results and the resolved GUI startup gate are recorded below. USB removal, Bluetooth interruption while held, sleep/wake, multi-display/Spaces and long-session behavior are separate fault qualifications; successful compilation is not those tests. Existing historical0.2 hardware qualifications apply only to that version.
 
 ## Installation and rollback
 
 Install the verified temporary Mac bundle as ChatGPT Mouse Controller.app; retain Flipper Mouse Bridge.app. Both share one controller lock, so only one can run. Back up the original companion FAP, replace it while normal USB is available, read it back and compare hashes. Stop/close controller before reverting either component. The unchanged protocol allows the new Mac controller to work with the old FAP, which lacks the new dashboard. Do not automatically roll back/replay after an uncertain action result.
 
-## Installed hardware qualification — 8 October 2026
+## Final installed-build qualification — 8 October 2026
 
-The companion0.3 was installed and read back byte-for-byte. On a generic browser mouse fixture, the preceding v0.3 Mac build passed left/right/middle click, double click, vertical scroll and held-button drag. The observed first action set had6 down/6 up events,4 clicks,1 double click and41 drag events; both wheel directions subsequently returned DONE. No game action was issued by this qualification.
+The companion0.3 was installed and read back byte-for-byte. The final Mac executable was installed from the verified temporary bundle, then kept unchanged throughout permission refresh and live testing. Strict installed signature verification passed again after testing. Source checkpoint: `d83d8f9e8f310799c4cdd4101aabbda72007ca0a`.
 
-Twenty movement-only targets passed: mean positioning1.117 seconds, mean error3.50 points, maximum3.99 points. Three exact-PID preparations passed. Same-process disconnect/reconnect rejected movement before fresh ARM; PING and normal STOP passed and normal USB returned. These are observed results on a browser window, not an equivalent-target comparison against v0.2 or qualification of every macOS app.
+| Test | Observed result on final installed build |
+|---|---|
+| GUI Connect after permission refresh | Ready in about4 seconds; no broad privacy reset |
+| GUI Stop/Connect in the same process | Ready in about1 second, Safe; fresh enable required |
+| GUI Quit/relaunch/Connect | Ready in about2 seconds; Bluetooth authorization remained allowed; no new permission prompt |
+| GUI explicit target / Prepare | Selected exact browser PID; focused verified window without centering input |
+| GUI left/right/middle and double click | Commands returned DONE; browser received6 down/6 up events across clicks and drag,4 clicks,1 double click |
+| GUI vertical scroll / drag | Both wheel directions observed (2 wheel events);500 ms drag produced44 drag events and released its button |
+| GUI edge guard / pointer copy |0%/0% rejected before dispatch; completed-command count unchanged; recent target point copied without input |
+| CLI final20 movement-only targets |20/20 within4 logical points; mean1.131 seconds, mean error3.55 points, maximum3.97 points |
+| CLI Prepare / reconnect |3 preparations passed; disconnected/reconnected action rejected before fresh ARM; PING returned PONG |
+| Shutdown |Normal STOP/Quit, no controller process left, normal USB serial returned; final browser buttons=0 |
 
-**GUI release gate:** launching the dashboard succeeded, but repeated Connect attempts left CoreBluetooth state at unknown until the15-second timeout. No ARM or mouse action was sent from those GUI sessions. Stop and Quit cleared the session; no controller process remained. Filtered CoreBluetooth logs showed an authorization request not completing; this is a lead, not proof of a permission cause. Moving initialization to Connect did not resolve the live GUI attempt. The final diagnostic build distinguishes initialization timeout from device discovery failure, reports authorization state and avoids stopScan when Bluetooth is not powered on. Apple documents the Bluetooth purpose-string requirement and authorization property ([Core Bluetooth](https://developer.apple.com/documentation/corebluetooth), [Designing for Privacy](https://developer.apple.com/videos/play/wwdc2019/708/)); the purpose string is present. Do not reset privacy permissions broadly or claim the issue repaired without another GUI test.
+The final positioning sequence used a1562×1076-point browser window. Times measure focus/positioning until convergence; they do not include a semantic click. This is supervised browser qualification, not an equivalent-target speed comparison against v0.2 or qualification of every macOS app. The preceding v0.3 build's20-target mean1.117 seconds remains historical evidence only. No Kingshot action was issued in this qualification; the gameplay client remained stopped.
 
-The final post-test changes (pointer dispatch guard, saved-window guard, compact labels and Bluetooth diagnostics) passed compilation/self-tests/C-handler checks and installed signature verification, but have not repeated hardware or GUI qualification. Hardware ownership was released to the client workflow, and no further device or pointer test will run during its active session. The Flipper display was compiled/installed but its physical legibility and BACK behavior remain unobserved.
+The Mac coordinate map and active/last command monitor updated during hardware actions. A minor presentation issue remains: the introductory permission hint can persist after Ready, although the connection badge and log correctly show connected/Safe. The installed executable remains unchanged; this cosmetic correction belongs in the next build and its qualification.
 
-## Next acceptance sequence
+The Flipper display was compiled/installed but its physical legibility and physical BACK behavior remain unobserved. USB removal, Bluetooth loss while held, sleep/wake, multi-display/Spaces, continuous focus checking through a held drag, and long-session behavior remain separate follow-up work. Dispatch guards do not provide semantic control recognition or a promise of unattended operation.
 
-1. After the client releases control, inspect app Bluetooth authorization and capture a bounded GUI-only initialization test; identify the startup cause before adding transport complexity.
-2. Repeat Connect/Enable/exact-target Prepare/position/click/drag/Stop on the final build, plus pointer displacement and moved-window rejection. Record startup/timeout outcomes, not just successful retry.
-3. Measure the same target sequence with old/new controller under the same display/acceleration conditions before claiming a speedup. Include queue wait, focus, positioning and dispatch in total-action timing.
-4. Observe the actual Flipper screen and physical BACK; then qualify Bluetooth loss during drag, cable removal, sleep/wake, multiple displays/Spaces and a longer session.
-5. Integrate the qualified generic controller into the client’s own startup/routing policy. Keep native control preferred per function/view and require visual outcome checks before uncertain retries.
+## GUI startup problem and verified repair
 
+Earlier dashboard launches stalled with CoreBluetooth unknown state. Moving initialization to Connect alone did not resolve the live attempt. Once gameplay stopped and released ownership, filtered TCC info logs showed the rebuilt executable rejected against the permission record's older cdhash requirement, despite an enabled switch in System Settings. This directly supported an app-identity mismatch rather than a broken Bluetooth transport.
 
-## Startup investigation — resumed after gameplay stop
+The final build separates cancellable Bluetooth initialization (60-second deadline) from device discovery (15 seconds after powered-on), logs authorization state, and accepts an optional existing `MOUSE_CODESIGN_IDENTITY`. Those changes improve diagnosis and bounded behavior; refreshing the grant for the actual installed executable resolved this observed startup failure. The owner approved the scoped System Settings refresh with Touch ID. Subsequent TCC logs accepted the executable's identity and user consent; GUI Connect, same-process reconnect and full relaunch all reached Ready. No `tccutil` reset was executed, and no other privacy grants were changed.
 
-The user stopped the gameplay client early and ownership was explicitly released. The installed diagnostic build reported Bluetooth authorization0 (not determined), while System Settings showed the controller's Bluetooth switch enabled. Filtered TCC info logs rejected the requesting executable against the previously stored cdhash requirement and attempted a Bluetooth prompt. This directly supports an app-identity mismatch; successful repair still requires permission refresh and fresh launch qualification. The Mac has no valid app-signing identity available. Apple DTS recommends an Apple Developer signing identity during development ([Apple Developer Forums](https://developer.apple.com/forums/thread/663889)).
+The current Mac has no valid Apple app-signing identity available and this build is ad-hoc signed. Git signing is separate. Apple DTS recommends an Apple Developer identity during development ([Apple Developer Forums](https://developer.apple.com/forums/thread/663889)). Apple documents Bluetooth authorization and purpose-string requirements ([Core Bluetooth](https://developer.apple.com/documentation/corebluetooth), [Designing for Privacy](https://developer.apple.com/videos/play/wwdc2019/708/)); this app includes its purpose string. Rebuilding can change an ad-hoc code identity: verify the installed bundle and requalify privacy/startup rather than trusting the Settings switch alone. No new certificate, account, weakened signature requirement or firmware flash was used.
 
-Source now separates cancellable Bluetooth initialization (60-second deadline) from actual device discovery (15 seconds after powered-on). Stop remains available while initialization waits. The build accepts an optional existing `MOUSE_CODESIGN_IDENTITY` instead of forcing ad-hoc signing. No new certificate, account, broad privacy reset or relaxed signing requirement was created. These changes compile and self-tests pass; they are not yet installed/hardware-qualified.
+## Next priorities and naming assessment
 
-Only this controller's existing Bluetooth grant is being refreshed. System Settings requested owner Touch ID before applying the change; that step is pending. Leave the installed bundle unchanged until the owner completes the off-toggle, then install the final verified build before re-enabling the grant so it binds to the final executable. Do not repeat a rebuild after granting permission and claim that grant still qualifies the new code.
+1. Observe the actual Flipper screen and physical BACK, then qualify Bluetooth loss during drag, cable removal, sleep/wake, multiple displays/Spaces and a longer supervised session.
+2. Compare old/new controller using the same targets, window, acceleration and timing boundaries before claiming a speedup. Include queue wait and app focus in total-action measurements.
+3. Retain native Apple/CUA control for working functions. Each client owns startup, view recognition, per-function fallback rules and visual outcome checks; never replay an uncertain consequential command automatically.
+4. Correct the stale Ready hint in the next build. Verify moved-window and displaced-pointer rejection live in addition to existing handler/dispatch self-tests.
+5. Proposed naming: **AI HID Controller** for the Mac app, **AI HID CTRL** for the small Flipper display. HID describes the hardware route; current commands remain mouse-only. This is a naming assessment, not an applied rename. Keep bundle ID, preferences and ownership lock stable when implementing the next revision; app identity/privacy and firmware-display changes still need fresh qualification.

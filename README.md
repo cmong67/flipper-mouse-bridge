@@ -6,9 +6,9 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 
 ![Mac dashboard preview](docs/assets/controller-dashboard-v03.png)
 
-## Version 0.3 candidate
+## Version 0.3 — supervised qualification passed
 
-**Release gate:** GUI Bluetooth initialization stalled in the installation test. The controller was stopped and closed safely. CLI hardware tests passed on the preceding v0.3 build; the latest guard/diagnostic build requires repeat qualification. Do not replace a working client workflow with this GUI yet.
+**Verified on the final installed build:** GUI startup, reconnect and full relaunch; browser mouse buttons/double click, both scroll directions and drag;20/20 positioning targets within4 logical points (mean1.131 seconds); fresh-arm enforcement and normal Stop/USB restoration. The earlier GUI startup gate was resolved by refreshing the existing Bluetooth grant for the installed executable. Physical BACK, held-button connection loss, sleep/wake and multi-display behavior remain unqualified.
 
 - Exact running-app selection by PID, or an application file for optional launch.
 - Live screen coordinates in logical points, target-window coordinates/percentages and a desktop pointer map with trail.

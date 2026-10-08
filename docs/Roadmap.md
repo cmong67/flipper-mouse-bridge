@@ -29,4 +29,9 @@ Built-in startup/focus/positioning, bounded connection and command handling, rem
 
 ## General-purpose revision — 8 October 2026
 
-See [v0.3 candidate review and dashboard design](General-Purpose-Controller.md) for the current architecture, installed tests and unresolved GUI Bluetooth startup gate. This document retains its historical findings.
+See [v0.3 review, qualification and dashboard design](General-Purpose-Controller.md) for the current architecture, installed tests and resolved GUI Bluetooth startup gate and remaining physical fault tests. This document retains its historical findings.
+
+
+## Final v0.3 qualification — 8 October 2026
+
+GUI startup, same-process reconnect and full relaunch passed after the installed executable’s existing Bluetooth grant was refreshed. Final browser commands and20-target positioning passed (mean1.131s, maximum3.97pt). Prioritize physical display/BACK, held-input faults, sleep/wake and equivalent-target timing. Proposed AI HID Controller / AI HID CTRL naming is deferred to the next build; current installed build remains unchanged.

@@ -1,11 +1,11 @@
 App(
     appid="ble_usb_mouse",
-    name="BLE USB Mouse",
+    name="Mouse Controller",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="ble_usb_mouse_app",
     stack_size=4096,
     fap_category="Tools",
-    fap_version="0.1",
+    fap_version="0.3",
     fap_description="Bluetooth RPC to USB mouse bridge with bounded gestures and stop control",
     fap_author="Personal project",
 )

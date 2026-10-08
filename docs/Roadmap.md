@@ -25,3 +25,8 @@ Built-in startup/focus/positioning, bounded connection and command handling, rem
 3. Add locally stored target profiles for supervised navigation only after screen recognition is reliable.
 4. Measure longer-session reliability and action latency with a consistent benchmark; tune only against those results.
 5. Decide signing/notarization and packaged release distribution when external installation is required. Preserve offline runtime and no telemetry.
+
+
+## General-purpose revision — 8 October 2026
+
+See [v0.3 candidate review and dashboard design](General-Purpose-Controller.md) for the current architecture, installed tests and unresolved GUI Bluetooth startup gate. This document retains its historical findings.

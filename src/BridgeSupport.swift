@@ -41,13 +41,14 @@ struct QueuedCommand {
     let command: MouseCommand
     let deadline: TimeInterval
     let completion: Completion
+    let validWhen: ()->Bool
 }
 struct CommandQueue {
     let limit: Int
     private(set) var items=[QueuedCommand]()
-    mutating func append(_ command: MouseCommand, now: TimeInterval, completion: @escaping Completion) -> Bool {
+    mutating func append(_ command: MouseCommand, now: TimeInterval, validWhen: @escaping ()->Bool = {true}, completion: @escaping Completion) -> Bool {
         guard items.count < limit else { return false }
-        items.append(QueuedCommand(command: command, deadline: now+5, completion: completion)); return true
+        items.append(QueuedCommand(command: command, deadline: now+5, completion: completion, validWhen:validWhen)); return true
     }
     mutating func next(now: TimeInterval) -> (QueuedCommand?, [QueuedCommand]) {
         var expired=[QueuedCommand]()
@@ -92,5 +93,8 @@ func supportTests() {
     precondition(completions.count==1 && q.items.isEmpty)
     precondition(q.append(.drag(100,0,1000),now:10,completion:done))
     let cancelled=q.cancel();precondition(cancelled.count==1 && q.next(now:10).0==nil)
-    print("PASS: input bounds, queue capacity, action expiry and cancellation")
+    precondition(q.append(.click(1,1),now:20,validWhen:{false},completion:done))
+    let rejected=q.next(now:20).0
+    precondition(rejected != nil && !rejected!.validWhen())
+    print("PASS: input bounds, queue capacity, action expiry, cancellation and dispatch guard")
 }

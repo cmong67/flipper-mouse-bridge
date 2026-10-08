@@ -1,14 +1,25 @@
-# Flipper Mouse Bridge
+# ChatGPT Mouse Controller
 
-A local macOS app that controls a Flipper Zero USB mouse. Bluetooth carries commands directly from the Mac to the Flipper; USB carries hardware mouse input back to the Mac. Version 0.2 adds bounded connection recovery, explicit arming, and built-in Kingshot focus and pointer positioning.
+A local Mac dashboard and Flipper Zero companion for supervised USB mouse control. Bluetooth transports bounded commands; the Flipper delivers USB HID input. The controller works with an explicitly selected application. It contains no game-specific startup, triggers or gameplay logic.
 
-**Local and self-contained at runtime:** the Mac app needs no cloud service, account, subscription, Python runtime, or internet connection. It uses macOS frameworks and saves preferences locally. The Flipper requires the separately installed companion FAP. Kingshot's own network connection is separate. Building or downloading the project can require internet access; using an installed bridge does not. There is no telemetry or remote control server.
+This is a personal project, not an official OpenAI product. “ChatGPT” names the intended collaboration workflow; the app has no ChatGPT/API connection, cloud service, account, telemetry or background automation.
 
-Read the [refined app qualification](docs/Refined-App-Qualification.md), [development paper](docs/Development-Paper.md), [validation record](docs/Validation.md), and [roadmap](docs/Roadmap.md). Earlier [Kingshot navigation](docs/Kingshot-Qualification.md) and [round 2](docs/Kingshot-Round-2.md) reports retain their dated evidence. This is a supervised mouse bridge, not a complete unattended gameplay agent.
+![Mac dashboard preview](docs/assets/controller-dashboard-v03.png)
+
+## Version 0.3 candidate
+
+**Release gate:** GUI Bluetooth initialization stalled in the installation test. The controller was stopped and closed safely. CLI hardware tests passed on the preceding v0.3 build; the latest guard/diagnostic build requires repeat qualification. Do not replace a working client workflow with this GUI yet.
+
+- Exact running-app selection by PID, or an application file for optional launch.
+- Live screen coordinates in logical points, target-window coordinates/percentages and a desktop pointer map with trail.
+- Active/last commands, queue depth, command count and measured Bluetooth-command latency.
+- Bounded adaptive positioning, 50 ms observation settling, no center movement during preparation and no redundant `MOVE 0 0` round trip.
+- Focus/window verification at dispatch, one positioning task, bounded queue/expiry, fresh arming, Stop/disconnect recovery.
+- Flipper display: SAFE/ARMED, BLE/USB status, active/last command, processed command count, last execution duration and physical BACK to stop/release.
+
+Speed improvement must be measured on equivalent targets. Historical version0.2 averaged1.49 seconds for20 targets; this is not a v0.3 performance claim. See [revision review and qualification](docs/General-Purpose-Controller.md).
 
 ## Build
-
-Install Apple's command-line developer tools, Python 3, and official uFBT for development:
 
 ```sh
 sh scripts/build-mac.sh
@@ -20,47 +31,51 @@ cd flipper_mouse
 ../.venv/bin/ufbt
 ```
 
-The Mac app is generated in `dist/Flipper Mouse Bridge.app`. The build also prints a verified temporary copy outside cloud-synced folders. The Flipper app is generated in `flipper_mouse/dist/ble_usb_mouse.fap`; transfer it to `/ext/apps/Tools/ble_usb_mouse.fap` with qFlipper, then close qFlipper. Official firmware 1.4.3 / API 87.1 / target 7 is the qualified configuration. Other firmware versions require a matching build and qualification.
+The build prints a verified temporary Mac bundle and also copies it into `dist/ChatGPT Mouse Controller.app`. Cloud-sync metadata can invalidate the copied bundle signature; verify the installed copy from the temporary build. The Flipper build produces `flipper_mouse/dist/ble_usb_mouse.fap`; transfer to `/ext/apps/Tools/ble_usb_mouse.fap` only after stopping the old controller and confirming ordinary USB is restored. Keep a backup of the prior FAP. Official firmware1.4.3/API87.1/target7 is the build target; no firmware replacement is required.
 
-## Run
+## Dashboard
 
-1. Keep the Flipper plugged into USB and enable Bluetooth. Open the Mac app and allow Bluetooth access.
-2. Enter a distinctive substring of the Flipper's advertised name and select **Connect**. Confirm matching pairing codes if requested.
-3. Wait for **Ready — mouse disabled**, then select **Enable mouse**. Every new connection needs fresh arming.
-4. Select **Prepare Kingshot**. The app launches or focuses Kingshot and positions the pointer at the window center. If needed, use **Choose Kingshot…** to select its application. Confirm the game has finished loading.
-5. Enter the target X/Y percentages of the current game window, measured from its top-left corner. For example, `50 50` selects its center. Enter a bounded command and select **Send**. The app focuses the game, verifies and corrects pointer position, then executes the command.
-6. Select **Stop** to disconnect and restore normal USB. Connect again from the same app when needed.
+Keep USB connected, enable Bluetooth, close qFlipper. Select the exact running target (or Choose app), enter a distinctive Flipper name, Connect, then Enable mouse after Ready. Prepare target focuses it and checks a visible window; it does not click or move the pointer. Confirm the target screen has loaded before any action.
 
-There is no three-second manual placement delay in version 0.2. Positioning observes the cursor and uses Flipper hardware moves. Stop cancels queued actions; reconnect does not replay them. Use only one controller at a time. Physical BACK is implemented on the Flipper but still awaits a live qualification test.
+Choose a command and X/Y percentages measured from the target window’s top-left. Position + send focuses the target, moves via observed HID corrections, rechecks guards, and executes. Use target pointer copies the last observed pointer within that selected window (up to30 seconds old, with unchanged window geometry) into the percentage fields; it does not send input. Confirm the intended control before sending. Stop disconnects, cancels queued work and releases buttons on the Flipper.
 
-## Advanced terminal control
+Read-only preview: `mouse-bridge --dashboard-preview`. Offline visual QA: `mouse-bridge --render-dashboard /absolute/path/preview.png`. Neither mode sends commands or takes controller ownership.
 
-```sh
-"dist/Flipper Mouse Bridge.app/Contents/MacOS/mouse-bridge" --cli DEVICE_NAME
+## CLI
+
+```text
+mouse-bridge --cli DISTINCTIVE_DEVICE_NAME
+ARM
+TARGET EXACT_RUNNING_PID
+PREPARE
+STATUS
+ACTION 50 50 CLICK 1 1
+ACTION 40 60 DRAG 0 240 500
+POINT 800 400
+HERE SCROLL -3
+DISCONNECT
+CONNECT DISTINCTIVE_DEVICE_NAME
+ARM
+STOP
 ```
 
-| Command | Action |
+`TARGET` accepts a PID or a unique running bundle ID; ambiguous matches fail. `APPLICATION /absolute/path/Selected.app` selects a particular installation; `PREPARE` may launch it. `ACTION X% Y% COMMAND` focuses/positions/checks the selected target. `POINT X Y` uses global screen points and requires target focus. Raw mouse commands and `HERE` are also guarded at the current pointer. Only PING/ARM bypass target selection. No old game default remains: existing integrations must explicitly select their target. STOP exits the CLI; DISCONNECT preserves its process. Reconnect never replays work or arms automatically.
+
+| Command | Bounds |
 |---|---|
-| `PING` / `ARM` | Check connection / enable this session |
-| `PREPARE` | Launch or focus Kingshot and position at center |
-| `ACTION 50 50 MOVE 0 0` | Focus and position at window center; harmless no-op |
-| `ACTION 50 50 CLICK 1 1` | Focus, position, then left-click the supervised target |
-| `POINT x y` | Position at absolute logical screen coordinates in focused Kingshot |
-| `STATUS` | Report connection, game focus, pointer and window bounds |
-| `MOVE 30 0` | Raw relative HID movement |
-| `CLICK 1 1` / `CLICK 1 2` | Raw left click / double-click |
-| `CLICK 2 1` / `CLICK 4 1` | Raw right / middle click |
-| `SCROLL -3` | Raw vertical wheel |
-| `DRAG 120 0 1000` | Raw left-button drag for one second |
-| `DISCONNECT` / `CONNECT DEVICE_NAME` | Stop / reconnect without exiting |
-| `STOP` / `QUIT` / `RELEASE` | Disconnect and exit |
+| PING / ARM | Connection health / enable this session |
+| MOVE x y | Each axis −127…127 HID counts |
+| CLICK button count | Button1 left,2 right,4 middle; count1…2 |
+| SCROLL delta | −127…127; vertical wheel |
+| DRAG x y ms | Each axis −2000…2000 counts;100…3000 ms |
 
-Raw mouse commands act immediately and do not enforce Kingshot focus. GUI Send and CLI ACTION use the guarded positioning path. MOVE/SCROLL accept −127…127; DRAG accepts ±2000 per axis and 100…3000 ms. HID counts differ from screen pixels. Kingshot maps and tested lists responded to held-button dragging; tested wheel commands had no visible game effect.
+Coordinates are logical screen points, not Retina pixels or HID counts. Native Apple/CUA remains preferred when it works; use hardware for a specific observed failure. Target focus/geometry guards do not continuously guarantee focus throughout a held drag; supervise it. Trackpad pinch/rotation and horizontal scrolling are outside this protocol.
 
-## Verification scope
+## Records
 
-Version 0.2 passed native Swift protocol/queue/input tests, tests of the actual Flipper C command handler, exclusive controller ownership, hardware connection/arming, bounded scan timeout, and twenty movement-only targets within four logical points. Mean positioning time was 1.49 seconds in that run. The installed build passed strict local signature verification. The shared GUI/CLI focus-and-position path passed a harmless ACTION test; an edge target was rejected before clicking.
+- [General-purpose revision and device dashboard design](docs/General-Purpose-Controller.md)
+- [Original development paper](docs/Development-Paper.md)
+- [Historical validation](docs/Validation.md) and [v0.2 qualification](docs/Refined-App-Qualification.md)
+- [Roadmap](docs/Roadmap.md)
 
-Native automation could not reliably inspect the replacement GUI, so its complete button flow is not yet qualified. Physical BACK, held-button abrupt faults, cable loss, sleep/wake, multiple displays/Spaces and extended unattended use remain pending. The app uses a local ad-hoc signature, not Apple notarization. See the qualification report for evidence and limits.
-
-Sources: [official firmware](https://github.com/flipperdevices/flipperzero-firmware/tree/1.4.3), [uFBT](https://github.com/flipperdevices/flipperzero-ufbt).
+Historical game tests are dated evidence; application-specific launch/routing policy belongs to the client workflow. Personal device identities, raw logs, account data and private vault notes are excluded from this repository.

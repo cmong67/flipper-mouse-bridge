@@ -14,18 +14,50 @@ typedef struct {
     volatile bool stop;
     bool armed;
     ViewPort* viewport;
+    bool ui_armed;
+    bool ui_usb;
+    bool ui_busy;
+    bool ui_error;
+    uint32_t ui_completed;
+    uint32_t ui_elapsed;
+    char ui_command[24];
 } Bridge;
 
 typedef struct { char text[96]; } Command;
 
+// Copy a small synchronized snapshot; never hold the RPC lock while painting.
 static void draw(Canvas* canvas, void* context) {
     Bridge* b = context;
+    bool armed, usb, busy, error, linked;
+    uint32_t completed, elapsed;
+    char command[24];
+    furi_mutex_acquire(b->mutex, FuriWaitForever);
+    armed=b->ui_armed;usb=b->ui_usb;busy=b->ui_busy;error=b->ui_error;
+    linked=b->rpc!=NULL;completed=b->ui_completed;elapsed=b->ui_elapsed;
+    memcpy(command,b->ui_command,sizeof(command));
+    furi_mutex_release(b->mutex);
+    char line[40];
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 3, 12, "BLE > USB Mouse");
+    canvas_draw_str(canvas, 3, 10, "MOUSE CTRL");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 3, 28, b->armed ? "Mouse enabled" : "Waiting for host ARM");
-    canvas_draw_str(canvas, 3, 42, "BACK: stop and release");
-    canvas_draw_str(canvas, 3, 56, "USB cable + Bluetooth");
+    canvas_draw_str(canvas, 88, 10, armed ? "ARMED" : "SAFE");
+    canvas_draw_line(canvas, 2, 13, 125, 13);
+    snprintf(line,sizeof(line),"BLE:%s  USB:%s",linked ? "ON" : "OFF",usb ? "ON" : "OFF");
+    canvas_draw_str(canvas, 3, 24, line);
+    snprintf(line,sizeof(line),"%s %s",busy ? ">" : (error ? "!" : "o"),command[0] ? command : "Waiting for host");
+    canvas_draw_str(canvas, 3, 36, line);
+    snprintf(line,sizeof(line),"Cmd:%lu  %lums",(unsigned long)MIN(completed,99999U),(unsigned long)MIN(elapsed,9999U));
+    canvas_draw_str(canvas, 3, 48, line);
+    canvas_draw_line(canvas, 2, 51, 125, 51);
+    canvas_draw_str(canvas, 3, 62, "BACK: STOP + RELEASE");
+}
+static void dashboard(Bridge* b, const char* command, bool busy, uint32_t elapsed) {
+    furi_mutex_acquire(b->mutex,FuriWaitForever);
+    b->ui_armed=b->armed;b->ui_usb=furi_hal_hid_is_connected();b->ui_busy=busy;
+    if(command) snprintf(b->ui_command,sizeof(b->ui_command),"%.23s",command);
+    if(command && !busy) {b->ui_completed++;b->ui_elapsed=elapsed;}
+    furi_mutex_release(b->mutex);
+    view_port_update(b->viewport);
 }
 static void input(InputEvent* event, void* context) {
     Bridge* b = context;
@@ -60,6 +92,7 @@ static void rpc_event(const RpcAppSystemEvent* event, void* context) {
 }
 static void reply(Bridge* b, const char* message) {
     furi_mutex_acquire(b->mutex, FuriWaitForever);
+    b->ui_error = !strncmp(message,"ERROR",5) || !strcmp(message,"STOPPED");
     if(b->rpc) rpc_system_app_exchange_data(b->rpc, (const uint8_t*)message, strlen(message));
     furi_mutex_release(b->mutex);
 }
@@ -124,7 +157,12 @@ int32_t ble_usb_mouse_app(void* args) {
     if(!furi_hal_usb_set_config(&usb_hid,NULL)) b->stop=true;
     while(!b->stop) {
         Command cmd;
-        if(furi_message_queue_get(b->commands,&cmd,50)==FuriStatusOk) execute(b,cmd.text);
+        if(furi_message_queue_get(b->commands,&cmd,250)==FuriStatusOk) {
+            dashboard(b,cmd.text,true,0);
+            uint32_t start=furi_get_tick();
+            execute(b,cmd.text);
+            dashboard(b,cmd.text,false,furi_get_tick()-start);
+        } else {dashboard(b,NULL,false,0);}
     }
     furi_hal_hid_mouse_release(HID_MOUSE_BTN_LEFT|HID_MOUSE_BTN_RIGHT|HID_MOUSE_BTN_WHEEL);
     furi_delay_ms(30);

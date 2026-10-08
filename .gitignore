@@ -4,3 +4,5 @@ __pycache__/
 .DS_Store
 flipper_mouse/dist/
 flipper_mouse/.ufbt/
+
+flipper_mouse/.vscode/

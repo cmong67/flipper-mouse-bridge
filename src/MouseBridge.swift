@@ -54,6 +54,15 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     private var pending: UInt64?
     private var active: QueuedCommand?
     private var response: String?
+    private var commandStarted: TimeInterval?
+    private(set) var completedCommands=0
+    private(set) var lastCommand:String?
+    private(set) var lastResult:String?
+    private(set) var lastLatency: TimeInterval?
+    private(set) var averageLatency: TimeInterval?
+    var activeElapsed:TimeInterval? { commandStarted.map {now-$0} }
+    var activeCommand:String? { active?.command.text }
+    var queuedCount:Int { queue.items.count }
     private var queue=CommandQueue(limit:8)
     private var timer: DispatchWorkItem?
     private var target=""
@@ -62,7 +71,7 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     private let txUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E61FE0000")
     private let rxUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E62FE0000")
     private let serviceUUID=CBUUID(string:"8FE5B3D5-2E7F-4A98-2A48-7ACC60FE0000")
-    override init() { super.init(); manager=CBCentralManager(delegate:self,queue:.main) }
+    override init() { super.init() }
     private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
     var isArmed: Bool { state == .armed }
     var canConnect: Bool { state == .disconnected || state == .failed }
@@ -80,11 +89,17 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         guard !name.isEmpty else { transition(.failed,"Enter a distinctive Flipper name.");return }
         failure=nil;target=name;rx=nil;buffer.removeAll();pending=nil;response=nil
         transition(.scanning)
-        timeout(15) { [weak self] in self?.fail("Flipper not found within 15 seconds. Check Bluetooth and device name, then reconnect.") }
+        if manager==nil {manager=CBCentralManager(delegate:self,queue:.main)}
+        log("Bluetooth state: \(manager.state.rawValue); authorization: \(CBManager.authorization.rawValue)")
+        timeout(15) { [weak self] in
+            guard let self else {return}
+            self.fail(self.manager.state == .unknown || self.manager.state == .resetting ? "Bluetooth initialization did not finish. Check this app in System Settings → Privacy & Security → Bluetooth, then quit and reopen. No mouse command was sent." : "Flipper not found within 15 seconds. Check Bluetooth and device name, then reconnect.")
+        }
         if manager.state == .poweredOn { scan() }
         else if manager.state != .unknown && manager.state != .resetting { fail("Bluetooth unavailable or permission denied.") }
     }
     private func scan() {
+        guard let manager else {return}
         log("Bluetooth available; discovering device.")
         if let saved=UserDefaults.standard.string(forKey:"Peripheral-"+target.lowercased()),let id=UUID(uuidString:saved),let cached=manager.retrievePeripherals(withIdentifiers:[id]).first {
             centralManager(manager,didDiscover:cached,advertisementData:[:],rssi:0)
@@ -125,8 +140,8 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         finishDisconnect()
     }
     private func finishDisconnect() {
-        timer?.cancel();manager.stopScan();device?.delegate=nil;device=nil;rx=nil;buffer.removeAll();pending=nil;response=nil
-        let old=active;active=nil;let queued=queue.cancel()
+        timer?.cancel();if manager?.state == .poweredOn {manager.stopScan()};device?.delegate=nil;device=nil;rx=nil;buffer.removeAll();pending=nil;response=nil
+        let old=active;active=nil;commandStarted=nil;let queued=queue.cancel()
         transition(failure == nil ? .disconnected : .failed,failure ?? "Mouse commands cleared; Flipper restores USB after disconnect.")
         old?.completion(.failure(.message("Session ended.")));queued.forEach { $0.completion(.failure(.message("Session ended; action discarded."))) }
         let callbacks=stopCompletions;stopCompletions.removeAll();callbacks.forEach { $0() }
@@ -134,10 +149,10 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     func stop(completion: (()->Void)? = nil) {
         if let completion { stopCompletions.append(completion) }
         if state == .stopping { return }
-        timer?.cancel();manager.stopScan();transition(.stopping)
+        timer?.cancel();if manager?.state == .poweredOn {manager.stopScan()};transition(.stopping)
         let queued=queue.cancel();queued.forEach { $0.completion(.failure(.message("Stopped; action discarded."))) }
         if let device {
-            manager.cancelPeripheralConnection(device)
+            manager?.cancelPeripheralConnection(device)
             // Stay unavailable until CoreBluetooth confirms disconnect. Never open a competing session.
             timeout(5) { [weak self] in self?.log("Still waiting for Bluetooth disconnect. Unplug Flipper if its mouse remains active.") }
         } else { finishDisconnect() }
@@ -212,7 +227,13 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     }
     private func finishCommandIfReady() {
         guard pending==nil,let result=response,let item=active else { return }
-        timer?.cancel();active=nil;response=nil;log("Flipper: \(result)")
+        timer?.cancel();active=nil;response=nil;lastCommand=item.command.text;lastResult=result
+        if let start=commandStarted {
+            let latency=now-start;lastLatency=latency;completedCommands+=1
+            averageLatency=(averageLatency ?? latency)*0.8+latency*0.2
+            log(String(format:"Flipper: %@ · %.0f ms",result,latency*1000))
+        } else { log("Flipper: \(result)") }
+        commandStarted=nil
         if result.hasPrefix("ERROR") || result=="STOPPED" {
             if item.command == .arm { transition(.ready) }
             item.completion(.failure(.message(result)))
@@ -226,9 +247,12 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         pump()
     }
     func submit(_ command:MouseCommand,completion:@escaping Completion = { _ in }) {
+        submit(command,validWhen:{true},completion:completion)
+    }
+    func submit(_ command:MouseCommand,validWhen:@escaping ()->Bool,completion:@escaping Completion) {
         guard state == .ready || state == .armed else { completion(.failure(.message("Connect and wait for Ready first.")));return }
         guard !command.needsArm || isArmed else { completion(.failure(.message("Mouse disabled. Arm this session first.")));return }
-        guard queue.append(command,now:now,completion:completion) else { completion(.failure(.message("Command queue full; action rejected.")));return }
+        guard queue.append(command,now:now,validWhen:validWhen,completion:completion) else { completion(.failure(.message("Command queue full; action rejected.")));return }
         pump()
     }
     private func pump() {
@@ -239,6 +263,7 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
             next?.completion(.failure(.message("Session changed; action discarded.")));return
         }
         guard !item.command.needsArm || isArmed else { item.completion(.failure(.message("Session is not armed.")));pump();return }
-        active=item;response=nil;log("Sending: \(item.command.text)");request(65,field(1,Array(item.command.text.utf8)))
+        guard item.validWhen() else {item.completion(.failure(.message("Target guard changed before dispatch; action discarded.")));pump();return}
+        active=item;response=nil;commandStarted=now;log("Sending: \(item.command.text)");request(65,field(1,Array(item.command.text.utf8)))
     }
 }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="896" height="512" viewBox="0 0 448 256">
+<rect width="448" height="256" rx="22" fill="#101827"/>
+<text x="24" y="30" fill="#eaf1ff" font-family="system-ui" font-size="15" font-weight="bold">Flipper companion · 128 × 64</text>
+<g transform="translate(32,48) scale(3)">
+<rect width="128" height="64" rx="2" fill="#ff9a08"/>
+<g fill="#251700" font-family="monospace" font-size="6">
+<text x="3" y="10" font-weight="bold" font-size="8">MOUSE CTRL</text><text x="88" y="10">ARMED</text>
+<path d="M2 13H125 M2 51H125" stroke="#251700" stroke-width="0.6"/>
+<text x="3" y="24">BLE:ON  USB:ON</text>
+<text x="3" y="36">&gt; DRAG 0 240 500</text>
+<text x="3" y="48">Cmd:42  580ms</text>
+<text x="3" y="62">BACK: STOP + RELEASE</text>
+</g></g>
+<text x="24" y="232" fill="#aab7cb" font-family="system-ui" font-size="11">Design preview · relative commands, no absolute Mac coordinates</text>
+</svg>

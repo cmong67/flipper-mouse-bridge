@@ -154,3 +154,8 @@ See [round 2 report](Kingshot-Round-2.md) for measurements and scope. These resu
 The refined native Mac app replaces the three-second manual placement flow with built-in game launch/focus and observed pointer correction. It adds explicit session states, bounded discovery/RPC/queue deadlines, exclusive controller ownership, cancellation and fresh arming after reconnect. The Flipper companion remains unchanged. Runtime is entirely local: the Mac bundle uses macOS frameworks, Bluetooth sends commands directly to the Flipper, and USB carries hardware mouse input. No cloud service, telemetry, account or separate Python runtime is used.
 
 Twenty movement-only targets passed within four logical points, averaging 1.49 seconds in this run. A harmless installed-app ACTION test verified foreground switching and positioning; an unsafe edge target was rejected before clicking. Full GUI interaction and physical-device fault qualification remain pending. See [Refined application qualification](Refined-App-Qualification.md) for architecture, measurements, evidence boundaries and release gates. Earlier sections describe the dated prototype and remain historical records.
+
+
+## General-purpose revision — 8 October 2026
+
+See [v0.3 candidate review and dashboard design](General-Purpose-Controller.md) for the current architecture, installed tests and unresolved GUI Bluetooth startup gate. This document retains its historical findings.

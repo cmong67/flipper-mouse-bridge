@@ -1,6 +1,6 @@
 App(
     appid="ble_usb_mouse",
-    name="Mouse Controller",
+    name="AI HID CTRL",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="ble_usb_mouse_app",
     stack_size=4096,

@@ -4,7 +4,7 @@
 <g transform="translate(32,48) scale(3)">
 <rect width="128" height="64" rx="2" fill="#ff9a08"/>
 <g fill="#251700" font-family="monospace" font-size="6">
-<text x="3" y="10" font-weight="bold" font-size="8">MOUSE CTRL</text><text x="88" y="10">ARMED</text>
+<text x="3" y="10" font-weight="bold" font-size="8">AI HID CTRL</text><text x="88" y="10">ARMED</text>
 <path d="M2 13H125 M2 51H125" stroke="#251700" stroke-width="0.6"/>
 <text x="3" y="24">BLE:ON  USB:ON</text>
 <text x="3" y="36">&gt; DRAG 0 240 500</text>

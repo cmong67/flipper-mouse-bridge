@@ -48,7 +48,7 @@ The companion’s128×64 display is appropriate for a compact execution/status d
 
 | Row | Content | Meaning |
 |---|---|---|
-| Header | MOUSE CTRL · SAFE/ARMED | Host has enabled this session or input is disabled |
+| Header | AI HID CTRL · SAFE/ARMED | Host has enabled this session or input is disabled |
 | Transport | BLE:ON/OFF · USB:ON/OFF | RPC session present and USB HID connected |
 | Command | `>` busy, `o` ended, `!` error + command | Active/last bounded command, not a semantic game action |
 | Timing | Cmd:N · last ms | Processed-command count, including checks/errors; execution duration excludes Bluetooth latency |
@@ -103,4 +103,11 @@ The current Mac has no valid Apple app-signing identity available and this build
 2. Compare old/new controller using the same targets, window, acceleration and timing boundaries before claiming a speedup. Include queue wait and app focus in total-action measurements.
 3. Retain native Apple/CUA control for working functions. Each client owns startup, view recognition, per-function fallback rules and visual outcome checks; never replay an uncertain consequential command automatically.
 4. Correct the stale Ready hint in the next build. Verify moved-window and displaced-pointer rejection live in addition to existing handler/dispatch self-tests.
-5. Proposed naming: **AI HID Controller** for the Mac app, **AI HID CTRL** for the small Flipper display. HID describes the hardware route; current commands remain mouse-only. This is a naming assessment, not an applied rename. Keep bundle ID, preferences and ownership lock stable when implementing the next revision; app identity/privacy and firmware-display changes still need fresh qualification.
+5. **AI HID CTRL** is now applied to the Flipper app-list metadata and dashboard header; **AI HID Controller** remains proposed for the Mac app. Current commands are mouse-only. The Mac executable, bundle ID, preferences and ownership lock remain unchanged.
+
+
+## Flipper name revision and live client limit — 8 October 2026
+
+After the user requested the actual name update and stopped gameplay, the Flipper app metadata and dashboard header were changed to **AI HID CTRL**. A fresh backup of the installed companion matched the preceding qualified hash. The rebuilt companion passed APPCHK for target7/API87.1, was installed at the existing compatibility path, and read back byte-for-byte; its embedded app metadata contains the new name. The FAP format stores major/minor only, so companion version remains0.3 (name revision). The Mac bundle was not rebuilt or re-signed. No input-handler or command-protocol change was made; no new mouse/game input was used to verify the rename. Physical screen legibility remains unobserved.
+
+A separate live Kingshot run connected and armed successfully, but Prepare failed twice with “Selected app did not expose a focused visible window,” including after native raising. No hardware action beyond ARM was dispatched; the client stopped the bridge and continued with native control until the user's stop instruction. This narrows the current qualification: browser startup/actions passed, but the latest game window/focus/Space condition remains unresolved. The rename does not fix it. Previous game drag-scrolling results do not certify current Command Center navigation.

@@ -38,7 +38,7 @@ static void draw(Canvas* canvas, void* context) {
     furi_mutex_release(b->mutex);
     char line[40];
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 3, 10, "MOUSE CTRL");
+    canvas_draw_str(canvas, 3, 10, "AI HID CTRL");
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 88, 10, armed ? "ARMED" : "SAFE");
     canvas_draw_line(canvas, 2, 13, 125, 13);

@@ -1,6 +1,6 @@
 # ChatGPT Mouse Controller
 
-A local Mac dashboard and Flipper Zero companion for supervised USB mouse control. Bluetooth transports bounded commands; the Flipper delivers USB HID input. The controller works with an explicitly selected application. It contains no game-specific startup, triggers or gameplay logic.
+A local Mac dashboard and **AI HID CTRL** Flipper Zero companion for supervised USB mouse control. Bluetooth transports bounded commands; the Flipper delivers USB HID input. The controller works with an explicitly selected application. It contains no game-specific startup, triggers or gameplay logic.
 
 This is a personal project, not an official OpenAI product. “ChatGPT” names the intended collaboration workflow; the app has no ChatGPT/API connection, cloud service, account, telemetry or background automation.
 
@@ -18,6 +18,8 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 - Flipper display: SAFE/ARMED, BLE/USB status, active/last command, processed command count, last execution duration and physical BACK to stop/release.
 
 Speed improvement must be measured on equivalent targets. Historical version0.2 averaged1.49 seconds for20 targets; this is not a v0.3 performance claim. See [revision review and qualification](docs/General-Purpose-Controller.md).
+
+The companion app-list name and device header are now **AI HID CTRL**. The Mac app remains ChatGPT Mouse Controller. A later Kingshot run passed Connect/ARM but failed its focused-visible-window Prepare check; that game-specific condition remains unresolved despite browser qualification.
 
 ## Build
 

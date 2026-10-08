@@ -31,6 +31,8 @@ cd flipper_mouse
 ../.venv/bin/ufbt
 ```
 
+Optional stable app signing: set `MOUSE_CODESIGN_IDENTITY` to an existing Apple Development or Developer ID identity before building. The default is ad-hoc signing; changed builds can invalidate macOS privacy grants even while Settings shows them enabled. Git commit signing is separate from app signing. No certificate/account is provisioned by this script.
+
 The build prints a verified temporary Mac bundle and also copies it into `dist/ChatGPT Mouse Controller.app`. Cloud-sync metadata can invalidate the copied bundle signature; verify the installed copy from the temporary build. The Flipper build produces `flipper_mouse/dist/ble_usb_mouse.fap`; transfer to `/ext/apps/Tools/ble_usb_mouse.fap` only after stopping the old controller and confirming ordinary USB is restored. Keep a backup of the prior FAP. Official firmware1.4.3/API87.1/target7 is the build target; no firmware replacement is required.
 
 ## Dashboard

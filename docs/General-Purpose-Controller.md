@@ -83,3 +83,12 @@ The final post-test changes (pointer dispatch guard, saved-window guard, compact
 3. Measure the same target sequence with old/new controller under the same display/acceleration conditions before claiming a speedup. Include queue wait, focus, positioning and dispatch in total-action timing.
 4. Observe the actual Flipper screen and physical BACK; then qualify Bluetooth loss during drag, cable removal, sleep/wake, multiple displays/Spaces and a longer session.
 5. Integrate the qualified generic controller into the client’s own startup/routing policy. Keep native control preferred per function/view and require visual outcome checks before uncertain retries.
+
+
+## Startup investigation — resumed after gameplay stop
+
+The user stopped the gameplay client early and ownership was explicitly released. The installed diagnostic build reported Bluetooth authorization0 (not determined), while System Settings showed the controller's Bluetooth switch enabled. Filtered TCC info logs rejected the requesting executable against the previously stored cdhash requirement and attempted a Bluetooth prompt. This directly supports an app-identity mismatch; successful repair still requires permission refresh and fresh launch qualification. The Mac has no valid app-signing identity available. Apple DTS recommends an Apple Developer signing identity during development ([Apple Developer Forums](https://developer.apple.com/forums/thread/663889)).
+
+Source now separates cancellable Bluetooth initialization (60-second deadline) from actual device discovery (15 seconds after powered-on). Stop remains available while initialization waits. The build accepts an optional existing `MOUSE_CODESIGN_IDENTITY` instead of forcing ad-hoc signing. No new certificate, account, broad privacy reset or relaxed signing requirement was created. These changes compile and self-tests pass; they are not yet installed/hardware-qualified.
+
+Only this controller's existing Bluetooth grant is being refreshed. System Settings requested owner Touch ID before applying the change; that step is pending. Leave the installed bundle unchanged until the owner completes the off-toggle, then install the final verified build before re-enabling the grant so it binds to the final executable. Do not repeat a rebuild after granting permission and claim that grant still qualifies the new code.

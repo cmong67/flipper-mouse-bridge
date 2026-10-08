@@ -39,7 +39,7 @@ func fields(_ bytes: [UInt8]) -> [Int: [UInt8]] {
 func numeric(_ bytes: [UInt8]?) -> UInt64 { var i=0; return readVarint(bytes ?? [0],&i) ?? 0 }
 
 enum BridgeState: String {
-    case disconnected="Disconnected", scanning="Finding Flipper", connecting="Connecting", starting="Starting bridge", ready="Ready — mouse disabled", armed="Ready — mouse enabled", stopping="Stopping", failed="Connection failed"
+    case disconnected="Disconnected", initializing="Waiting for Bluetooth", scanning="Finding Flipper", connecting="Connecting", starting="Starting bridge", ready="Ready — mouse disabled", armed="Ready — mouse enabled", stopping="Stopping", failed="Connection failed"
 }
 
 final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
@@ -88,18 +88,19 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         let name=name.trimmingCharacters(in:.whitespacesAndNewlines)
         guard !name.isEmpty else { transition(.failed,"Enter a distinctive Flipper name.");return }
         failure=nil;target=name;rx=nil;buffer.removeAll();pending=nil;response=nil
-        transition(.scanning)
+        transition(.initializing,"Confirm Bluetooth access if macOS asks. Stop cancels this attempt.")
         if manager==nil {manager=CBCentralManager(delegate:self,queue:.main)}
         log("Bluetooth state: \(manager.state.rawValue); authorization: \(CBManager.authorization.rawValue)")
-        timeout(15) { [weak self] in
-            guard let self else {return}
-            self.fail(self.manager.state == .unknown || self.manager.state == .resetting ? "Bluetooth initialization did not finish. Check this app in System Settings → Privacy & Security → Bluetooth, then quit and reopen. No mouse command was sent." : "Flipper not found within 15 seconds. Check Bluetooth and device name, then reconnect.")
+        timeout(60) { [weak self] in
+            self?.fail("Bluetooth initialization did not finish. Check this app in System Settings → Privacy & Security → Bluetooth, then quit and reopen. No mouse command was sent.")
         }
         if manager.state == .poweredOn { scan() }
         else if manager.state != .unknown && manager.state != .resetting { fail("Bluetooth unavailable or permission denied.") }
     }
     private func scan() {
-        guard let manager else {return}
+        guard let manager,manager.state == .poweredOn,state == .initializing else {return}
+        transition(.scanning)
+        timeout(15) { [weak self] in self?.fail("Flipper not found within 15 seconds. Check Bluetooth and device name, then reconnect.") }
         log("Bluetooth available; discovering device.")
         if let saved=UserDefaults.standard.string(forKey:"Peripheral-"+target.lowercased()),let id=UUID(uuidString:saved),let cached=manager.retrievePeripherals(withIdentifiers:[id]).first {
             centralManager(manager,didDiscover:cached,advertisementData:[:],rssi:0)
@@ -112,7 +113,7 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         manager.scanForPeripherals(withServices:nil,options:[CBCentralManagerScanOptionAllowDuplicatesKey:false])
     }
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn { if state == .scanning { scan() } }
+        if central.state == .poweredOn { if state == .initializing { scan() } }
         else if !canConnect && state != .stopping && central.state != .unknown && central.state != .resetting {
             fail("Bluetooth unavailable. Restore Bluetooth, then reconnect and arm a fresh session.")
         }

@@ -83,7 +83,7 @@ final class ControlPanel:NSObject,NSApplicationDelegate {
         bridge.onLog={ [weak self] text in self?.append(text) }
         bridge.onState={ [weak self] state,reason in
             guard let self else {return};if state != .armed {self.target.cancel()}
-            self.status.stringValue=[BridgeState.disconnected:"OFFLINE",.scanning:"DISCOVERING",.connecting:"CONNECTING",.starting:"STARTING",.ready:"CONNECTED · SAFE",.armed:"CONNECTED · ARMED",.stopping:"RELEASING",.failed:"CONNECTION FAILED"][state]!;if !reason.isEmpty {self.detail.stringValue=reason};self.refresh()
+            self.status.stringValue=[BridgeState.disconnected:"OFFLINE",.initializing:"BLUETOOTH SETUP",.scanning:"DISCOVERING",.connecting:"CONNECTING",.starting:"STARTING",.ready:"CONNECTED · SAFE",.armed:"CONNECTED · ARMED",.stopping:"RELEASING",.failed:"CONNECTION FAILED"][state]!;if !reason.isEmpty {self.detail.stringValue=reason};self.refresh()
         }
         target.onStatus={ [weak self] text in self?.detail.stringValue=text }
         let menu=NSMenu();let item=NSMenuItem();menu.addItem(item)

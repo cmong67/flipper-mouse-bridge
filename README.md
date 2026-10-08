@@ -82,6 +82,7 @@ Coordinates are logical screen points, not Retina pixels or HID counts. Native A
 
 ## Records
 
+- [Progressive development history and checkpoints](docs/Development-History.md)
 - [General-purpose revision and device dashboard design](docs/General-Purpose-Controller.md)
 - [Original development paper](docs/Development-Paper.md)
 - [Historical validation](docs/Validation.md) and [v0.2 qualification](docs/Refined-App-Qualification.md)

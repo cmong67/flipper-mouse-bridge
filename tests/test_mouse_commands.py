@@ -16,13 +16,17 @@ harness=r'''
 #define HID_MOUSE_BTN_LEFT 1
 #define HID_MOUSE_BTN_RIGHT 2
 #define HID_MOUSE_BTN_WHEEL 4
-typedef struct { bool stop; bool armed; void* viewport; } Bridge;
+#define FuriWaitForever 0
+typedef struct { bool stop; bool armed; void* viewport; void* mutex; bool ui_position_valid,ui_usb,ui_armed; int ui_x,ui_y; uint32_t ui_position_tick,ui_refresh_tick; } Bridge;
 static Bridge bridge;
 static int pressed, releases, movements, dx,dy,wheel,elapsed, stop_at,fail_at;
 static char response[100];
 static bool connected=true;
 static void reply(Bridge* b,const char* msg) { (void)b; snprintf(response,sizeof(response),"%s",msg); }
 static void view_port_update(void* v) { (void)v; }
+static void furi_mutex_acquire(void* m,int t) { (void)m;(void)t; }
+static void furi_mutex_release(void* m) { (void)m; }
+static uint32_t furi_get_tick(void) { return elapsed; }
 static bool furi_hal_hid_is_connected(void) { return connected; }
 static bool furi_hal_hid_mouse_press(int button) { pressed|=button; return true; }
 static bool furi_hal_hid_mouse_release(int button) { pressed&=~button; releases++; return true; }
@@ -38,6 +42,9 @@ static void reset(void) { memset(&bridge,0,sizeof(bridge));pressed=releases=move
 tests=r'''
 int main(void) {
  reset();execute(&bridge,"MOVE 10 0");assert(movements==0 && strstr(response,"not armed"));
+ execute(&bridge,"POS -1440 820");assert(bridge.ui_position_valid && bridge.ui_x==-1440 && bridge.ui_y==820 && !strcmp(response,"POSITION") && !movements && !pressed && !releases);
+ execute(&bridge,"POS 100000 0");assert(bridge.ui_x==-1440 && !movements && strncmp(response,"ERROR",5)==0);
+ execute(&bridge,"POS 1 2 extra");assert(bridge.ui_x==-1440 && !movements && strncmp(response,"ERROR",5)==0);
  execute(&bridge,"PING");assert(!strcmp(response,"PONG"));
  execute(&bridge,"ARM");assert(bridge.armed && !strcmp(response,"ARMED"));
  execute(&bridge,"MOVE 127 -127");assert(dx==127 && dy==-127 && !strcmp(response,"DONE"));

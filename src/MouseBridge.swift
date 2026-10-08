@@ -61,12 +61,14 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     private(set) var lastLatency: TimeInterval?
     private(set) var averageLatency: TimeInterval?
     var activeElapsed:TimeInterval? { commandStarted.map {now-$0} }
-    var activeCommand:String? { active?.command.text }
+    var activeCommand:String? { active.flatMap { $0.command.isTelemetry ? nil : $0.command.text } }
     var queuedCount:Int { queue.items.count }
     private var queue=CommandQueue(limit:8)
     private var timer: DispatchWorkItem?
     private var target=""
     private var failure: String?
+    private var lastPositionSent=0.0
+    private(set) var positionUpdates=0
     private var stopCompletions=[()->Void]()
     private let txUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E61FE0000")
     private let rxUUID=CBUUID(string:"19ED82AE-ED21-4C9D-4145-228E62FE0000")
@@ -75,6 +77,15 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
     var isArmed: Bool { state == .armed }
     var canConnect: Bool { state == .disconnected || state == .failed }
+    // Display-only refreshes never build up behind gestures or positioning.
+    func updatePointer(_ point:CGPoint?,busy:Bool) {
+        guard !busy,let point,point.x.isFinite,point.y.isFinite,
+              abs(point.x)<=99999,abs(point.y)<=99999,
+              state == .ready || state == .armed,
+              pending==nil,active==nil,queue.items.isEmpty,now-lastPositionSent>=0.25 else {return}
+        lastPositionSent=now
+        submit(.position(Int(point.x.rounded()),Int(point.y.rounded())))
+    }
     private func log(_ text: String) { print(text);fflush(stdout);onLog?(text) }
     private func transition(_ value: BridgeState, _ detail: String="") {
         state=value; log("State: \(value.rawValue)\(detail.isEmpty ? "" : " · "+detail)");onState?(value,detail)
@@ -228,8 +239,10 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     }
     private func finishCommandIfReady() {
         guard pending==nil,let result=response,let item=active else { return }
-        timer?.cancel();active=nil;response=nil;lastCommand=item.command.text;lastResult=result
-        if let start=commandStarted {
+        timer?.cancel();active=nil;response=nil
+        if !item.command.isTelemetry {lastCommand=item.command.text;lastResult=result}
+        if item.command.isTelemetry {if result=="POSITION" {positionUpdates+=1}}
+        else if let start=commandStarted {
             let latency=now-start;lastLatency=latency;completedCommands+=1
             averageLatency=(averageLatency ?? latency)*0.8+latency*0.2
             log(String(format:"Flipper: %@ · %.0f ms",result,latency*1000))
@@ -265,6 +278,8 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         }
         guard !item.command.needsArm || isArmed else { item.completion(.failure(.message("Session is not armed.")));pump();return }
         guard item.validWhen() else {item.completion(.failure(.message("Target guard changed before dispatch; action discarded.")));pump();return}
-        active=item;response=nil;commandStarted=now;log("Sending: \(item.command.text)");request(65,field(1,Array(item.command.text.utf8)))
+        active=item;response=nil;commandStarted=now
+        if !item.command.isTelemetry {log("Sending: \(item.command.text)")}
+        request(65,field(1,Array(item.command.text.utf8)))
     }
 }

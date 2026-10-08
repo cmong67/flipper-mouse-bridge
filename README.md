@@ -4,9 +4,13 @@ A local Mac dashboard and **AI HID CTRL** Flipper Zero companion for supervised 
 
 This is a personal project, not an official OpenAI product. “ChatGPT” names the intended collaboration workflow; the app has no ChatGPT/API connection, cloud service, account, telemetry or background automation.
 
-![Mac dashboard preview](docs/assets/controller-dashboard-v03.png)
+![Mac dashboard preview](docs/assets/controller-dashboard-v04.png)
 
-## Version 0.3 — supervised qualification passed
+## Version 0.4 — installed display update
+
+Mac 0.4.0 build 5 and AI HID CTRL 0.4 are installed. The Mac map uses a fading tail of the last 20 positions. The Flipper keeps logical screen X/Y visible through a bounded idle-channel feed and marks readings OLD after one second without an update. Live connection verification is awaiting the owner’s Bluetooth permission refresh. See [release evidence and limits](docs/Pointer-Display-v04.md).
+
+## Version 0.3 — historical supervised qualification passed
 
 **Verified on the final installed build:** GUI startup, reconnect and full relaunch; browser mouse buttons/double click, both scroll directions and drag;20/20 positioning targets within4 logical points (mean1.131 seconds); fresh-arm enforcement and normal Stop/USB restoration. The earlier GUI startup gate was resolved by refreshing the existing Bluetooth grant for the installed executable. Physical BACK, held-button connection loss, sleep/wake and multi-display behavior remain unqualified.
 
@@ -63,11 +67,12 @@ ARM
 STOP
 ```
 
-`TARGET` accepts a PID or a unique running bundle ID; ambiguous matches fail. `APPLICATION /absolute/path/Selected.app` selects a particular installation; `PREPARE` may launch it. `ACTION X% Y% COMMAND` focuses/positions/checks the selected target. `POINT X Y` uses global screen points and requires target focus. Raw mouse commands and `HERE` are also guarded at the current pointer. Only PING/ARM bypass target selection. No old game default remains: existing integrations must explicitly select their target. STOP exits the CLI; DISCONNECT preserves its process. Reconnect never replays work or arms automatically.
+`TARGET` accepts a PID or a unique running bundle ID; ambiguous matches fail. `APPLICATION /absolute/path/Selected.app` selects a particular installation; `PREPARE` may launch it. `ACTION X% Y% COMMAND` focuses/positions/checks the selected target. `POINT X Y` uses global screen points and requires target focus. Raw mouse commands and `HERE` are also guarded at the current pointer. Only PING/ARM and display-only POS bypass target selection. No old game default remains: existing integrations must explicitly select their target. STOP exits the CLI; DISCONNECT preserves its process. Reconnect never replays work or arms automatically.
 
 | Command | Bounds |
 |---|---|
 | PING / ARM | Connection health / enable this session |
+| POS x y | Display-only logical screen coordinates; each axis −99999…99999 |
 | MOVE x y | Each axis −127…127 HID counts |
 | CLICK button count | Button1 left,2 right,4 middle; count1…2 |
 | SCROLL delta | −127…127; vertical wheel |

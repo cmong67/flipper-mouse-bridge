@@ -32,6 +32,7 @@ let gui = !CommandLine.arguments.contains("--cli")
 let bridge:MouseBridge
 var panel:ControlPanel?
 var cliTarget:TargetController?
+var pointerTicker:Timer?
 if gui {
     let app=NSApplication.shared;panel=ControlPanel(preview:preview);app.delegate=panel;app.setActivationPolicy(.regular);bridge=panel!.bridge
 } else {
@@ -39,6 +40,9 @@ if gui {
     bridge=MouseBridge();cliTarget=TargetController(bridge:bridge)
     bridge.onState={state,_ in if state != .armed {cliTarget?.cancel()}}
     bridge.connect(CommandLine.arguments.dropFirst().first{!$0.hasPrefix("--")} ?? "Flipper")
+    pointerTicker=Timer.scheduledTimer(withTimeInterval:0.25,repeats:true) { _ in
+        bridge.updatePointer(CGEvent(source:nil)?.location,busy:cliTarget?.busy ?? false)
+    }
     DispatchQueue.global().async {
         while let line=readLine() {
             DispatchQueue.main.async {
@@ -62,7 +66,7 @@ if gui {
                 if verb=="PREPARE" {cliTarget?.prepare {print(describe($0));fflush(stdout)};return}
                 if verb=="ACTION",words.count>=4,let x=Double(words[1]),let y=Double(words[2]),let command=MouseCommand.parse(words.dropFirst(3).joined(separator:" ")),command.needsArm {cliTarget?.perform(command,at:CGPoint(x:x/100,y:y/100)) {print(describe($0));fflush(stdout)};return}
                 if verb=="POINT",words.count==3,let x=Double(words[1]),let y=Double(words[2]),x.isFinite,y.isFinite {cliTarget?.point(CGPoint(x:x,y:y)) {print(describe($0));fflush(stdout)};return}
-                if verb=="STATUS" {print("\(bridge.state.rawValue); target: \(cliTarget!.targetName); focus: \(cliTarget!.hasFocus); pointer: \(String(describing:CGEvent(source:nil)?.location)); window: \(String(describing:cliTarget!.windowBounds())); queue: \(bridge.queuedCount); active: \(bridge.activeCommand ?? "none")");fflush(stdout);return}
+                if verb=="STATUS" {print("\(bridge.state.rawValue); target: \(cliTarget!.targetName); focus: \(cliTarget!.hasFocus); pointer: \(String(describing:CGEvent(source:nil)?.location)); window: \(String(describing:cliTarget!.windowBounds())); queue: \(bridge.queuedCount); active: \(bridge.activeCommand ?? "none"); display updates: \(bridge.positionUpdates)");fflush(stdout);return}
                 let commandText=verb=="HERE" ? words.dropFirst().joined(separator:" ") : line
                 guard let command=MouseCommand.parse(commandText) else {print("Error: invalid command or bounds.");fflush(stdout);return}
                 if command.needsArm {

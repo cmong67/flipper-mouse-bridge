@@ -40,7 +40,8 @@ final class ControlPanel:NSObject,NSApplicationDelegate {
     init(preview:Bool=false,renderOnly:Bool=false) { self.preview=preview;self.renderOnly=renderOnly;super.init() }
     func applicationDidFinishLaunching(_ notification:Notification) {
         window=NSWindow(contentRect:NSRect(x:0,y:0,width:940,height:760),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title="ChatGPT Mouse Controller · 0.3";window.appearance=NSAppearance(named:.darkAqua);window.center()
+        let version=Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.4.0"
+        window.title="ChatGPT Mouse Controller · \(version)";window.appearance=NSAppearance(named:.darkAqua);window.center()
         let view=window.contentView!;view.wantsLayer=true;view.layer?.backgroundColor=NSColor(calibratedRed:0.045,green:0.06,blue:0.10,alpha:1).cgColor
         func label(_ text:String,_ x:Double,_ y:Double,_ w:Double,_ size:Double=12)->NSTextField {
             let f=NSTextField(labelWithString:text);f.frame=NSRect(x:x,y:y,width:w,height:24);f.font = .systemFont(ofSize:size,weight:.medium);f.textColor = .secondaryLabelColor;view.addSubview(f);return f
@@ -54,7 +55,7 @@ final class ControlPanel:NSObject,NSApplicationDelegate {
         _=label("LOCAL CONTROL  /  BLUETOOTH COMMANDS → USB MOUSE",26,675,680,11)
         status.frame=NSRect(x:720,y:711,width:190,height:24);status.alignment = .right;status.textColor = .systemTeal;status.font = .systemFont(ofSize:12,weight:.bold);view.addSubview(status)
         card(24,426,540,238);card(580,426,336,238)
-        _=label("LIVE POINTER",42,625,350,11)
+        _=label("LIVE POINTER  /  LAST 20 POSITIONS",42,625,500,11)
         pointerLabel.font = .monospacedSystemFont(ofSize:25,weight:.medium);field(pointerLabel,42,586,500,36)
         field(relativeLabel,42,558,500,24)
         map.frame=NSRect(x:40,y:443,width:508,height:110);map.wantsLayer=true;map.layer?.cornerRadius=10;view.addSubview(map)
@@ -111,6 +112,7 @@ final class ControlPanel:NSObject,NSApplicationDelegate {
             else {relativeLabel.stringValue="Screen points · target window unavailable"}
         }
         map.update(p,bounds:observedBounds)
+        if !preview {bridge.updatePointer(p,busy:target.busy)}
         focusLabel.stringValue="\(target.hasFocus ? "FOCUSED" : "NOT FOCUSED") · \(target.targetName)"
         commandLabel.stringValue=bridge.activeCommand.map { $0+String(format:" · %.0f ms",(bridge.activeElapsed ?? 0)*1000) } ?? (target.busy ? "Positioning / focusing…" : (bridge.lastCommand.map { "Last: "+$0 } ?? "Idle"))
         let latency=bridge.lastLatency.map{String(format:"%.0f ms",$0*1000)} ?? "—"

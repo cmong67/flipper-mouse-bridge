@@ -28,12 +28,28 @@ final class TargetController {
     }
     private func focus(_ app:NSRunningApplication) {
         if hasFocus { return }
+        let id=generation,expectedPID=app.processIdentifier
+        app.unhide()
         let controller=NSApplication.shared
         controller.activate(ignoringOtherApps:true)
         if #available(macOS 14.0,*) {
             controller.yieldActivation(to:app)
-            _=app.activate(from:.current,options:[])
-        } else { _=app.activate(options:[.activateIgnoringOtherApps]) }
+            _=app.activate(from:.current,options:[.activateAllWindows])
+        } else { _=app.activate(options:[.activateAllWindows,.activateIgnoringOtherApps]) }
+        // Activation is a request, not proof. Reopen the exact running installation
+        // through Launch Services if cooperative activation did not take effect.
+        DispatchQueue.main.asyncAfter(deadline:.now()+0.25) { [weak self] in
+            guard let self,id==self.generation,self.selectedPID==expectedPID,!self.hasFocus,
+                  let url=app.bundleURL,!app.isTerminated else { return }
+            let config=NSWorkspace.OpenConfiguration();config.activates=true;config.createsNewApplicationInstance=false
+            NSWorkspace.shared.openApplication(at:url,configuration:config) { [weak self] activated,error in
+                DispatchQueue.main.async {
+                    guard let self,id==self.generation,self.selectedPID==expectedPID else { return }
+                    if let error { self.onStatus?("Exact-app activation failed: \(error.localizedDescription)") }
+                    else if activated?.processIdentifier != expectedPID { self.onStatus?("Activation returned another process; selected target unchanged.") }
+                }
+            }
+        }
     }
     func cancel() { generation+=1;busy=false;prepared=false }
     private func begin(_ completion:@escaping Completion)->Int? {

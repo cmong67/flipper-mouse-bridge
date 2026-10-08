@@ -159,3 +159,8 @@ Twenty movement-only targets passed within four logical points, averaging 1.49 s
 ## General-purpose revision — 8 October 2026
 
 See [v0.3 candidate review and dashboard design](General-Purpose-Controller.md) for the current architecture, installed tests and unresolved GUI Bluetooth startup gate. This document retains its historical findings.
+
+
+## Version 0.4 display revision — 2026-10-08
+
+The installed Mac 0.4.0 build 5 and AI HID CTRL 0.4 add a short 20-position trail and a display-only absolute coordinate feed with stale-reading indication. See [complete revision report](Pointer-Display-v04.md) for architecture, installation hashes, qualification and remaining limits. Earlier version-specific findings above are historical.

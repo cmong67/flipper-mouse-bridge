@@ -21,6 +21,10 @@ typedef struct {
     uint32_t ui_completed;
     uint32_t ui_elapsed;
     char ui_command[24];
+    bool ui_position_valid;
+    int ui_x, ui_y;
+    uint32_t ui_position_tick;
+    uint32_t ui_refresh_tick;
 } Bridge;
 
 typedef struct { char text[96]; } Command;
@@ -29,12 +33,15 @@ typedef struct { char text[96]; } Command;
 static void draw(Canvas* canvas, void* context) {
     Bridge* b = context;
     bool armed, usb, busy, error, linked;
-    uint32_t completed, elapsed;
+    uint32_t completed, elapsed, position_tick;
+    bool position_valid;
+    int x,y;
     char command[24];
     furi_mutex_acquire(b->mutex, FuriWaitForever);
     armed=b->ui_armed;usb=b->ui_usb;busy=b->ui_busy;error=b->ui_error;
     linked=b->rpc!=NULL;completed=b->ui_completed;elapsed=b->ui_elapsed;
     memcpy(command,b->ui_command,sizeof(command));
+    position_valid=b->ui_position_valid;position_tick=b->ui_position_tick;x=b->ui_x;y=b->ui_y;
     furi_mutex_release(b->mutex);
     char line[40];
     canvas_set_font(canvas, FontPrimary);
@@ -42,11 +49,12 @@ static void draw(Canvas* canvas, void* context) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 88, 10, armed ? "ARMED" : "SAFE");
     canvas_draw_line(canvas, 2, 13, 125, 13);
-    snprintf(line,sizeof(line),"BLE:%s  USB:%s",linked ? "ON" : "OFF",usb ? "ON" : "OFF");
+    if(position_valid) snprintf(line,sizeof(line),"X:%d Y:%d%s",x,y,(furi_get_tick()-position_tick>1000) ? " OLD" : "");
+    else snprintf(line,sizeof(line),"X:-- Y:--  Mac points");
     canvas_draw_str(canvas, 3, 24, line);
     snprintf(line,sizeof(line),"%s %s",busy ? ">" : (error ? "!" : "o"),command[0] ? command : "Waiting for host");
     canvas_draw_str(canvas, 3, 36, line);
-    snprintf(line,sizeof(line),"Cmd:%lu  %lums",(unsigned long)MIN(completed,99999U),(unsigned long)MIN(elapsed,9999U));
+    snprintf(line,sizeof(line),"%s/%s #%lu %lums",linked ? "BLE" : "OFF",usb ? "USB" : "OFF",(unsigned long)MIN(completed,99999U),(unsigned long)MIN(elapsed,9999U));
     canvas_draw_str(canvas, 3, 48, line);
     canvas_draw_line(canvas, 2, 51, 125, 51);
     canvas_draw_str(canvas, 3, 62, "BACK: STOP + RELEASE");
@@ -92,17 +100,33 @@ static void rpc_event(const RpcAppSystemEvent* event, void* context) {
 }
 static void reply(Bridge* b, const char* message) {
     furi_mutex_acquire(b->mutex, FuriWaitForever);
-    b->ui_error = !strncmp(message,"ERROR",5) || !strcmp(message,"STOPPED");
+    if(strcmp(message,"POSITION")) b->ui_error = !strncmp(message,"ERROR",5) || !strcmp(message,"STOPPED");
     if(b->rpc) rpc_system_app_exchange_data(b->rpc, (const uint8_t*)message, strlen(message));
     furi_mutex_release(b->mutex);
 }
 static bool wait_safe(Bridge* b, uint32_t ms) {
-    for(uint32_t t = 0; t < ms && !b->stop; t += 10) furi_delay_ms(MIN(10U, ms-t));
+    for(uint32_t t = 0; t < ms && !b->stop; t += 10) {
+        furi_delay_ms(MIN(10U, ms-t));
+        if(furi_get_tick()-b->ui_refresh_tick>=250) {
+            b->ui_refresh_tick=furi_get_tick();view_port_update(b->viewport);
+        }
+    }
     return !b->stop;
+}
+// Absolute logical screen points from the host; never emits a USB report.
+static void position(Bridge* b,int x,int y) {
+    furi_mutex_acquire(b->mutex,FuriWaitForever);
+    b->ui_x=x;b->ui_y=y;b->ui_position_valid=true;b->ui_position_tick=furi_get_tick();
+    b->ui_usb=furi_hal_hid_is_connected();b->ui_armed=b->armed;
+    furi_mutex_release(b->mutex);
+    view_port_update(b->viewport);
 }
 static void execute(Bridge* b, const char* cmd) {
     int x=0, y=0, duration=0, button=0, count=0;
     char tail;
+    if(sscanf(cmd,"POS %d %d %c",&x,&y,&tail)==2 && x>=-99999 && x<=99999 && y>=-99999 && y<=99999) {
+        position(b,x,y);reply(b,"POSITION");return;
+    }
     if(!strcmp(cmd, "PING")) { reply(b, "PONG"); return; }
     if(!strcmp(cmd, "ARM")) {
         b->armed = true;
@@ -158,6 +182,7 @@ int32_t ble_usb_mouse_app(void* args) {
     while(!b->stop) {
         Command cmd;
         if(furi_message_queue_get(b->commands,&cmd,250)==FuriStatusOk) {
+            if(!strncmp(cmd.text,"POS ",4)) {execute(b,cmd.text);continue;}
             dashboard(b,cmd.text,true,0);
             uint32_t start=furi_get_tick();
             execute(b,cmd.text);

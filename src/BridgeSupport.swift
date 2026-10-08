@@ -8,12 +8,14 @@ enum BridgeError: Error, CustomStringConvertible {
 typealias Completion = (Result<String, BridgeError>) -> Void
 
 enum MouseCommand: Equatable {
-    case ping, arm, move(Int, Int), click(Int, Int), scroll(Int), drag(Int, Int, Int)
-    var needsArm: Bool { self != .ping && self != .arm }
+    case ping, arm, position(Int, Int), move(Int, Int), click(Int, Int), scroll(Int), drag(Int, Int, Int)
+    var needsArm: Bool { switch self {case .ping,.arm,.position:return false;default:return true} }
+    var isTelemetry:Bool { if case .position=self {return true};return false }
     var text: String {
         switch self {
         case .ping: return "PING"
         case .arm: return "ARM"
+        case let .position(x,y): return "POS \(x) \(y)"
         case let .move(x,y): return "MOVE \(x) \(y)"
         case let .click(b,n): return "CLICK \(b) \(n)"
         case let .scroll(n): return "SCROLL \(n)"
@@ -28,6 +30,7 @@ enum MouseCommand: Equatable {
         switch (name,args.count) {
         case ("PING",0): return .ping
         case ("ARM",0): return .arm
+        case ("POS",2) where args.allSatisfy({ (-99999...99999).contains($0) }): return .position(args[0],args[1])
         case ("MOVE",2) where args.allSatisfy({ (-127...127).contains($0) }): return .move(args[0],args[1])
         case ("CLICK",2) where [1,2,4].contains(args[0]) && (1...2).contains(args[1]): return .click(args[0],args[1])
         case ("SCROLL",1) where (-127...127).contains(args[0]): return .scroll(args[0])
@@ -79,7 +82,9 @@ final class SessionOwner {
 
 func supportTests() {
     precondition(MouseCommand.parse("click 1 2") == .click(1,2))
-    for invalid in ["MOVE 128 0","MOVE 0 -128","DRAG 0 0 99","CLICK 3 1","CLICK 1 3","ARM extra","SCROLL 1 2","MOVE 1e3 0"] {
+    precondition(MouseCommand.parse("POS -1200 400") == .position(-1200,400))
+    precondition(!MouseCommand.position(1,2).needsArm)
+    for invalid in ["POS 100000 0","POS 1 2 garbage","MOVE 128 0","MOVE 0 -128","DRAG 0 0 99","CLICK 3 1","CLICK 1 3","ARM extra","SCROLL 1 2","MOVE 1e3 0"] {
         precondition(MouseCommand.parse(invalid)==nil)
     }
     var q=CommandQueue(limit:2);var completions=[String]()

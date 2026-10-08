@@ -111,3 +111,8 @@ The current Mac has no valid Apple app-signing identity available and this build
 After the user requested the actual name update and stopped gameplay, the Flipper app metadata and dashboard header were changed to **AI HID CTRL**. A fresh backup of the installed companion matched the preceding qualified hash. The rebuilt companion passed APPCHK for target7/API87.1, was installed at the existing compatibility path, and read back byte-for-byte; its embedded app metadata contains the new name. The FAP format stores major/minor only, so companion version remains0.3 (name revision). The Mac bundle was not rebuilt or re-signed. No input-handler or command-protocol change was made; no new mouse/game input was used to verify the rename. Physical screen legibility remains unobserved.
 
 A separate live Kingshot run connected and armed successfully, but Prepare failed twice with “Selected app did not expose a focused visible window,” including after native raising. No hardware action beyond ARM was dispatched; the client stopped the bridge and continued with native control until the user's stop instruction. This narrows the current qualification: browser startup/actions passed, but the latest game window/focus/Space condition remains unresolved. The rename does not fix it. Previous game drag-scrolling results do not certify current Command Center navigation.
+
+
+## Version 0.4 display revision — 2026-10-08
+
+The installed Mac 0.4.0 build 5 and AI HID CTRL 0.4 add a short 20-position trail and a display-only absolute coordinate feed with stale-reading indication. See [complete revision report](Pointer-Display-v04.md) for architecture, installation hashes, qualification and remaining limits. Earlier version-specific findings above are historical.

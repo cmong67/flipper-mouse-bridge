@@ -32,4 +32,4 @@ For each meaningful revision, preserve the previous evidence; record the problem
 
 ## Icon revision — 2026-10-13
 
-[Icon assets](../assets/icons/README.md) added in signed checkpoint `c01a307`; native Mac integration installed as0.4.1 build6. See [installation report](Icon-Installation-v041.md) for verification and the pending Bluetooth grant refresh.
+[Icon assets](../assets/icons/README.md) added in signed checkpoint `c01a307`; native Mac integration installed as0.4.1 build6. See [installation report](Icon-Installation-v041.md) for verification and the resolved Bluetooth grant refresh and reconnect qualification.

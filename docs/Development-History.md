@@ -28,3 +28,8 @@ The canonical dated work journals, private installation details, raw test logs a
 ## Continuing the record
 
 For each meaningful revision, preserve the previous evidence; record the problem, change, exact version/build, verification, limits, rollback and next action. Add a dated private journal entry and link the public sanitized report/checkpoint here. Label retrospective summaries and distinguish installed state from proposals or unverified tests.
+
+
+## Icon revision — 2026-10-13
+
+[Icon assets](../assets/icons/README.md) added in signed checkpoint `c01a307`; native Mac integration installed as0.4.1 build6. See [installation report](Icon-Installation-v041.md) for verification and the pending Bluetooth grant refresh.

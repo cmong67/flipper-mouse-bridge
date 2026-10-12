@@ -6,6 +6,10 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 
 ![Mac dashboard preview](docs/assets/controller-dashboard-v04.png)
 
+## Version 0.4.1 — Mac icon installed
+
+Native app icon installed in build 6; mouse code and Flipper 0.4 unchanged. [Installation evidence and current reconnect status](docs/Icon-Installation-v041.md).
+
 ## Version 0.4 — installed display update
 
 Mac 0.4.0 build 5 and AI HID CTRL 0.4 are installed. The Mac map uses a fading tail of the last 20 positions. The Flipper keeps logical screen X/Y visible through a bounded idle-channel feed and marks readings OLD after one second without an update. Live reconnect and coordinate acknowledgements passed with mouse control disabled after the owner refreshed the existing Bluetooth permission. See [release evidence and limits](docs/Pointer-Display-v04.md).

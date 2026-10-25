@@ -161,10 +161,24 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     func stop(completion: (()->Void)? = nil) {
         if let completion { stopCompletions.append(completion) }
         if state == .stopping { return }
+        let canRequestRelease = state == .ready || state == .armed
         timer?.cancel();if manager?.state == .poweredOn {manager.stopScan()};transition(.stopping)
         let queued=queue.cancel();queued.forEach { $0.completion(.failure(.message("Stopped; action discarded."))) }
         if let device {
-            manager?.cancelPeripheralConnection(device)
+            // Closing BLE first can tear down the RPC/USB profile before the host
+            // receives button-up. STOP is intentionally out of band: an in-flight
+            // drag must not delay it behind the normal command/response queue.
+            if canRequestRelease,device.state == .connected,let rx {
+                let id=nextID;nextID+=1
+                let payload=number(1,id)+field(65,field(1,Array("STOP".utf8)))
+                let data=Data(varint(UInt64(payload.count))+payload)
+                device.writeValue(data,for:rx,type:.withResponse)
+                log("Requested Flipper STOP before Bluetooth disconnect; allowing USB release to settle.")
+                DispatchQueue.main.asyncAfter(deadline:.now()+0.35) { [weak self] in
+                    guard let self,self.state == .stopping,self.device === device else {return}
+                    self.manager?.cancelPeripheralConnection(device)
+                }
+            } else { manager?.cancelPeripheralConnection(device) }
             // Stay unavailable until CoreBluetooth confirms disconnect. Never open a competing session.
             timeout(5) { [weak self] in self?.log("Still waiting for Bluetooth disconnect. Unplug Flipper if its mouse remains active.") }
         } else { finishDisconnect() }

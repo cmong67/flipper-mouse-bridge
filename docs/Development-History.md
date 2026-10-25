@@ -2,7 +2,7 @@
 
 Reconciled 2026-10-08, Asia/Hong_Kong, from repository history and the linked qualification reports. This retrospective index preserves the development sequence; it is not a verbatim conversation transcript. Commit dates identify saved checkpoints, not precise installation times.
 
-Current release: Mac **0.4.0 build 5**, Flipper **AI HID CTRL 0.4**. See [current release evidence](Pointer-Display-v04.md) and [README](../README.md) for current operation. Earlier game defaults and qualification results are dated history.
+Current release: Mac **0.4.2 build 7**, Flipper **AI HID CTRL 0.4**. See [current release evidence](Pointer-Repair-v042.md) and [README](../README.md) for current operation. Earlier game defaults and qualification results are dated history.
 
 | Date | Milestone | Development record | Checkpoint | Evidence |
 |---|---|---|---|---|
@@ -33,3 +33,8 @@ For each meaningful revision, preserve the previous evidence; record the problem
 ## Icon revision — 2026-10-13
 
 [Icon assets](../assets/icons/README.md) added in signed checkpoint `c01a307`; native Mac integration installed as0.4.1 build6. See [installation report](Icon-Installation-v041.md) for verification and the resolved Bluetooth grant refresh and reconnect qualification.
+
+
+## Positioning repair — 2026-10-25
+
+Mac 0.4.2 build 7 replaces fixed fine-correction gain and restrictive learning bounds after reproducing pointer oscillation on 0.4.1. Ten live targets and all bounded native mouse event tests passed; SAFE feed/reconnect passed. The rejected temporary self-test build is retained in the evidence. See [repair report](Pointer-Repair-v042.md). Flipper 0.4 remains unchanged.

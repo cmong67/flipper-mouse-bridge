@@ -146,7 +146,7 @@ final class TargetController {
         let dx=target.x-pointer.x,dy=target.y-pointer.y,error=hypot(dx,dy)
         if error<=4 { completion(.success(String(format:"Position error %.2f pt · %d moves · %.3f s",error,attempt,ProcessInfo.processInfo.systemUptime-start)));return }
         guard attempt<32,ProcessInfo.processInfo.systemUptime<deadline else { completion(.failure(.message("Positioning timed out. No click sent.")));return }
-        let x=PointerMath.step(dx,gain:abs(dx)>120 ? axisGain.x : 2.2),y=PointerMath.step(dy,gain:abs(dy)>120 ? axisGain.y : 2.2)
+        let x=PointerMath.step(dx,gain:axisGain.x),y=PointerMath.step(dy,gain:axisGain.y)
         bridge.submit(.move(x,y),validWhen:{ [weak self] in self?.generation==id && self?.guarded(bounds)==true }) { [weak self] result in
             guard let self,id==self.generation else { return }
             if case let .failure(error)=result { completion(.failure(error));return }
@@ -163,19 +163,42 @@ final class TargetController {
 }
 
 enum PointerMath {
-    static func step(_ delta:Double,gain:Double)->Int { max(-127,min(127,Int((delta/max(1,gain)).rounded()))) }
+    // Start with short reports; use measured gain at every distance, including fine correction.
+    static func step(_ delta:Double,gain:Double)->Int {
+        guard delta.isFinite,gain.isFinite,gain>0,abs(delta)>2 else {return 0}
+        let limit=min(127,max(24,(64/max(0.5,gain)).rounded(.down)))
+        let magnitude=min(limit,max(1,(abs(delta)/max(0.5,gain)).rounded()))
+        return delta<0 ? -Int(magnitude) : Int(magnitude)
+    }
     static func updatedGain(_ old:Double,report:Int,observed:Double)->Double {
-        guard abs(report)>=32,observed.isFinite,observed*Double(report)>0 else { return old }
+        guard report != 0,observed.isFinite,observed*Double(report)>0 else {return old}
         let sample=abs(observed/Double(report))
-        guard (0.5...8).contains(sample) else { return old }
-        return max(2.2,min(6,old*0.65+sample*0.35))
+        guard (0.1...128).contains(sample) else {return old}
+        // React quickly to overshoot/high sensitivity; relax conservatively as acceleration falls.
+        return max(0.5,min(128,sample>old ? sample*1.15 : old*0.65+sample*0.35))
     }
     static func tests() {
-        precondition(step(2000,gain:2.8)==127 && step(-2000,gain:2.8) == -127)
-        precondition(step(3,gain:2)==2)
+        precondition(step(2000,gain:2.8)==24 && step(-2000,gain:2.8) == -24)
+        precondition(step(3,gain:30)==1 && step(1,gain:2)==0)
+        precondition(step(.infinity,gain:2)==0 && step(3,gain:.nan)==0)
         precondition(updatedGain(2.8,report:0,observed:100)==2.8)
-        precondition(updatedGain(2.8,report:40,observed:-80)==2.8)
-        precondition(updatedGain(2.8,report:40,observed:120)>2.8)
-        print("PASS: bounded adaptive pointer steps and invalid feedback rejection")
+        precondition(updatedGain(2.8,report:4,observed:-80)==2.8)
+        precondition(updatedGain(2.8,report:24,observed:300)>12)
+        // Regression: sensitivity above the old 8-point sample ceiling used to oscillate forever.
+        for sensitivity in [0.6,2.8,8,16,24] {
+            for destination in [-700.0,-90,90,700] {
+                var position=0.0,gain=2.8
+                for _ in 0..<32 {
+                    let delta=destination-position
+                    if abs(delta)<=4 {break}
+                    let report=step(delta,gain:gain)
+                    // Model mouse acceleration: small reports have finer resolution.
+                    let movement=Double(report)*(abs(report)>4 ? sensitivity : min(sensitivity,2.0))
+                    position+=movement;gain=updatedGain(gain,report:report,observed:movement)
+                }
+                precondition(abs(destination-position)<=4,"Sensitivity regression: \(sensitivity), \(destination), \(position)")
+            }
+        }
+        print("PASS: adaptive positioning across low/high gain, fine correction and invalid feedback")
     }
 }

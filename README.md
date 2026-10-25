@@ -12,6 +12,8 @@ Mac build8 and AI HID CTRL0.5 are installed. Hardware tests passed60 positioning
 
 Version0.4.2 repaired adaptive positioning but later failed an interrupted-drag shutdown test. Its [historical positioning report](docs/Pointer-Repair-v042.md) remains available; use the paired0.4.3/0.5 repair for the tested recovery behavior.
 
+A second unchanged-build qualification passed120 targets,120 normal actions, ten reconnects, ten process starts, boundary inputs and13 held-action interruptions. See [repeat qualification and limits](docs/Repeat-Qualification-v043.md).
+
 ## Version 0.4.1 — historical Mac icon installation
 
 Native app icon installed in build 6; mouse code and Flipper 0.4 unchanged. [Installation evidence and current reconnect status](docs/Icon-Installation-v041.md).

@@ -48,3 +48,8 @@ Installed0.4.2 passed60 targets/60 normal mouse actions and5 reconnects, but hel
 ## Combined shutdown/readiness repair — 2026-10-25
 
 The first Mac-only0.4.3 candidate released a held button but failed its reconnect click and was rejected. The final pair adds Flipper0.5 USB readiness gating and Mac startup-exit failure handling. Both are installed;60 targets,60 normal commands, repeated held-drag release/reconnect, fresh-ARM guards, five process starts, focus refusal and SIGTERM release passed. The unchanged installed GUI then passed Bluetooth authorization, automated test-window focus/position/click, SAFE reconnect and Stop; final state OFFLINE with buttons0. Earlier failed results remain history; see [full repair paper](Stop-Release-v043.md).
+
+
+## Repeat qualification — 2026-10-25T18:36:22+03:00
+
+Unchanged installed0.4.3/0.5 pair passed120 positioning targets,120 ordinary actions, boundary input tests, ten reconnects/ten process starts and13 held-action interruptions including EOF and SIGINT. GUI click/scroll/drag, coordinate acknowledgements, companion readback and final release/signature checks passed. No production code or permission changes. A dashboard wheel-sign test assumption was corrected and both directions explicitly verified. See [repeat report](Repeat-Qualification-v043.md).

@@ -38,3 +38,8 @@ For each meaningful revision, preserve the previous evidence; record the problem
 ## Positioning repair — 2026-10-25
 
 Mac 0.4.2 build 7 replaces fixed fine-correction gain and restrictive learning bounds after reproducing pointer oscillation on 0.4.1. Ten live targets and all bounded native mouse event tests passed; SAFE feed/reconnect passed. The rejected temporary self-test build is retained in the evidence. See [repair report](Pointer-Repair-v042.md). Flipper 0.4 remains unchanged.
+
+
+## Extended shutdown finding — 2026-10-25
+
+Installed0.4.2 passed60 targets/60 normal mouse actions and5 reconnects, but held-drag disconnect left the host button down and subsequent USB reports failed. Ordinary serial restoration is insufficient release evidence. The0.4.3 candidate requests STOP before closing BLE; built/self-tested only, hardware reset/qualification pending. See [failure and candidate report](Stop-Release-v043.md).

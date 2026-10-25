@@ -10,6 +10,8 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 
 Installed build 7 repairs repeated overshoot and positioning timeouts. Ten live targets and click/scroll/drag tests passed on an isolated native test window. Flipper companion remains 0.4. See [repair evidence, measurements and limits](docs/Pointer-Repair-v042.md).
 
+Extended testing passed 60 targets and 60 normal actions but exposed a held-button failure when disconnecting mid-drag. Interrupted-gesture shutdown is unqualified; see the [failure evidence and 0.4.3 candidate status](docs/Stop-Release-v043.md). The candidate is not installed or hardware qualified.
+
 ## Version 0.4.1 — historical Mac icon installation
 
 Native app icon installed in build 6; mouse code and Flipper 0.4 unchanged. [Installation evidence and current reconnect status](docs/Icon-Installation-v041.md).

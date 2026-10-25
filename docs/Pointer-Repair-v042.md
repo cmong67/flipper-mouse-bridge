@@ -31,3 +31,10 @@ The updated GUI initially reported Bluetooth authorization 0 despite the existin
 Kingshot, multiple displays/Spaces, sleep/wake, physical BACK and held-button cable/Bluetooth faults were not requalified in this session. Native Apple/CUA control remains the default; use the bridge only for an observed native failure. A fresh target/focus check and ARM are required for a new session.
 
 The verified previous 0.4.1 bundle is retained privately. Close the controller, restore that bundle and verify its signature to roll back; macOS may require refreshing its existing Bluetooth grant. Replacing an ad-hoc signed build may change its privacy identity. An existing stable Apple signing identity remains an optional future improvement; Git signatures do not solve app permission identity.
+
+
+## Extended test finding — 2026-10-25
+
+A subsequent, broader test passed 60/60 positioning targets (maximum error3.97pt, mean1.502s), 60 mouse actions with matching independent native event counts, five reconnect/fresh-arm cycles, invalid-input rejection and single-controller enforcement. However, disconnecting while a confirmed 2500ms drag held the left button left macOS reporting that button down. Ordinary USB serial returned, but that did not prove button release. A reconnect/recovery click then failed its USB report. This invalidates any general shutdown-reliability inference from the earlier normal-action qualification. Version0.4.2 must not be described as fully qualified for interrupted gestures.
+
+The stop implementation closed Bluetooth immediately and relied on the companion’s session-close cleanup. A teardown/release ordering race is suspected. A later candidate requests companion STOP before closing Bluetooth; its actual hardware result must be recorded separately. Physical USB reset was requested after the failure. No Kingshot controls were used.

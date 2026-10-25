@@ -12,7 +12,7 @@ Completed 2026-10-25T18:36:22+03:00 (Africa/Cairo). User requested another exhau
 | Reconnects | 10/10 returned SAFE; pre-ARM click refused each time, PING and rearmed positioning passed |
 | Process starts | 10 independent CLI starts and normal stops passed |
 | Guard rejection | Second controller, pre-ARM input,10 invalid/outside-edge requests and12 concurrent target actions refused without unintended mouse input |
-| Added malformed input | 11 more cases, including NaN/infinity coordinates, trailing data, unsupported buttons/counts and out-of-range movement/scroll/duration, rejected without HID dispatch |
+| Added malformed input | 11 more cases, including NaN/infinity coordinates, trailing data, unsupported click counts and out-of-range movement/scroll/duration, rejected without HID dispatch |
 | Boundary actions | Nine commands passed: right/middle double-click, zero/±127 wheel values, diagonal drags at100ms and3000ms; expected button/wheel events independently observed |
 | Varied held-drag Stop | 10/10 confirmed-held3000ms horizontal/vertical/diagonal drags stopped after0,150,500,1000 or2000ms; buttons released, down/up balanced, every reconnect click passed; disconnect completion0.372–0.398s |
 | Other interrupted actions | Main-regression held-drag disconnect, closing command input during held drag, and SIGINT during independently confirmed held drag all released buttons; EOF/SIGINT exited0 |

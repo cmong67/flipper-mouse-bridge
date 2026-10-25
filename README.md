@@ -6,11 +6,11 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 
 ![Mac dashboard preview](docs/assets/controller-dashboard-v04.png)
 
-## Version 0.4.2 — adaptive pointer repair
+## Version 0.4.3 — shutdown and USB readiness repair
 
-Installed build 7 repairs repeated overshoot and positioning timeouts. Ten live targets and click/scroll/drag tests passed on an isolated native test window. Flipper companion remains 0.4. See [repair evidence, measurements and limits](docs/Pointer-Repair-v042.md).
+Mac build8 and AI HID CTRL0.5 are installed. Hardware tests passed60 positioning targets,60 normal mouse actions, five repeated held-drag Stop/reconnect cycles, focus rejection and termination during a drag. The Mac requests release before closing Bluetooth; the companion establishes USB report readiness before announcing startup. Installed dashboard connection, automated focus/position/click, SAFE reconnect and Stop also passed. See [repair, full qualification and limits](docs/Stop-Release-v043.md).
 
-Extended testing passed 60 targets and 60 normal actions but exposed a held-button failure when disconnecting mid-drag. Interrupted-gesture shutdown is unqualified; see the [failure evidence and 0.4.3 candidate status](docs/Stop-Release-v043.md). The candidate is not installed or hardware qualified.
+Version0.4.2 repaired adaptive positioning but later failed an interrupted-drag shutdown test. Its [historical positioning report](docs/Pointer-Repair-v042.md) remains available; use the paired0.4.3/0.5 repair for the tested recovery behavior.
 
 ## Version 0.4.1 — historical Mac icon installation
 
@@ -55,7 +55,7 @@ The build prints a verified temporary Mac bundle and also copies it into `dist/C
 
 Keep USB connected, enable Bluetooth, close qFlipper. Select the exact running target (or Choose app), enter a distinctive Flipper name, Connect, then Enable mouse after Ready. Prepare target focuses it and checks a visible window; it does not click or move the pointer. Confirm the target screen has loaded before any action.
 
-Choose a command and X/Y percentages measured from the target window’s top-left. Position + send focuses the target, moves via observed HID corrections, rechecks guards, and executes. Use target pointer copies the last observed pointer within that selected window (up to30 seconds old, with unchanged window geometry) into the percentage fields; it does not send input. Confirm the intended control before sending. Stop disconnects, cancels queued work and releases buttons on the Flipper.
+Choose a command and X/Y percentages measured from the target window’s top-left. Position + send focuses the target, moves via observed HID corrections, rechecks guards, and executes. Use target pointer copies the last observed pointer within that selected window (up to30 seconds old, with unchanged window geometry) into the percentage fields; it does not send input. Confirm the intended control before sending. Stop cancels queued work, requests button release and allows350ms before disconnecting. Held-drag shutdown passed the documented tests; abrupt transport/power loss remains unqualified.
 
 Read-only preview: `mouse-bridge --dashboard-preview`. Offline visual QA: `mouse-bridge --render-dashboard /absolute/path/preview.png`. Neither mode sends commands or takes controller ownership.
 

@@ -162,6 +162,20 @@ static void execute(Bridge* b, const char* cmd) {
     } else { reply(b,"ERROR: invalid command"); return; }
     reply(b, b->stop ? "STOPPED" : (okay ? "DONE" : "ERROR: USB report failed"));
 }
+// HID profile creation precedes host enumeration. Do not announce Ready until
+// a neutral report can be submitted; retries also tolerate endpoint setup timing.
+static bool prepare_usb(Bridge* b) {
+    furi_delay_ms(250);
+    for(unsigned attempt=0;attempt<30 && !b->stop;attempt++) {
+        if(furi_hal_hid_is_connected() && furi_hal_hid_mouse_release(
+               HID_MOUSE_BTN_LEFT|HID_MOUSE_BTN_RIGHT|HID_MOUSE_BTN_WHEEL)) {
+            furi_delay_ms(50);
+            return true;
+        }
+        furi_delay_ms(100);
+    }
+    return false;
+}
 int32_t ble_usb_mouse_app(void* args) {
     uint32_t rpc_address=0;
     if(!args || sscanf(args,"RPC %lx", &rpc_address)!=1) return -1;
@@ -177,8 +191,8 @@ int32_t ble_usb_mouse_app(void* args) {
     gui_add_view_port(gui,b->viewport,GuiLayerFullscreen);
     FuriHalUsbInterface* previous_usb=furi_hal_usb_get_config();
     rpc_system_app_set_callback(b->rpc,rpc_event,b);
-    rpc_system_app_send_started(b->rpc);
-    if(!furi_hal_usb_set_config(&usb_hid,NULL)) b->stop=true;
+    if(!furi_hal_usb_set_config(&usb_hid,NULL) || !prepare_usb(b)) b->stop=true;
+    if(!b->stop) rpc_system_app_send_started(b->rpc);
     while(!b->stop) {
         Command cmd;
         if(furi_message_queue_get(b->commands,&cmd,250)==FuriStatusOk) {

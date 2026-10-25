@@ -22,6 +22,7 @@ static Bridge bridge;
 static int pressed, releases, movements, dx,dy,wheel,elapsed, stop_at,fail_at;
 static char response[100];
 static bool connected=true;
+static int release_failures;
 static void reply(Bridge* b,const char* msg) { (void)b; snprintf(response,sizeof(response),"%s",msg); }
 static void view_port_update(void* v) { (void)v; }
 static void furi_mutex_acquire(void* m,int t) { (void)m;(void)t; }
@@ -29,7 +30,7 @@ static void furi_mutex_release(void* m) { (void)m; }
 static uint32_t furi_get_tick(void) { return elapsed; }
 static bool furi_hal_hid_is_connected(void) { return connected; }
 static bool furi_hal_hid_mouse_press(int button) { pressed|=button; return true; }
-static bool furi_hal_hid_mouse_release(int button) { pressed&=~button; releases++; return true; }
+static bool furi_hal_hid_mouse_release(int button) { pressed&=~button; releases++; if(release_failures>0){release_failures--;return false;}return true; }
 static bool furi_hal_hid_mouse_move(int x,int y) {
     assert(x>=-127 && x<=127 && y>=-127 && y<=127);
     movements++; if(fail_at && movements==fail_at) return false;
@@ -37,7 +38,7 @@ static bool furi_hal_hid_mouse_move(int x,int y) {
 }
 static bool furi_hal_hid_mouse_scroll(int x) { wheel+=x;return true; }
 static void furi_delay_ms(uint32_t ms) { elapsed+=ms; if(stop_at && elapsed>=stop_at) bridge.stop=true; }
-static void reset(void) { memset(&bridge,0,sizeof(bridge));pressed=releases=movements=dx=dy=wheel=elapsed=stop_at=fail_at=0;response[0]=0; connected=true; }
+static void reset(void) { memset(&bridge,0,sizeof(bridge));pressed=releases=movements=dx=dy=wheel=elapsed=stop_at=fail_at=0;response[0]=0; connected=true;release_failures=0; }
 '''
 tests=r'''
 int main(void) {
@@ -58,6 +59,9 @@ int main(void) {
  reset();bridge.armed=true;fail_at=3;execute(&bridge,"DRAG 500 0 1000");assert(!pressed && releases==1 && movements==3 && strstr(response,"report failed"));
  reset();bridge.armed=true;execute(&bridge,"DRAG 0 0 3001");assert(releases==0 && strstr(response,"invalid"));
  connected=false;execute(&bridge,"CLICK 1 1");assert(!pressed && releases==0 && strstr(response,"USB unavailable"));
+ reset();release_failures=2;assert(prepare_usb(&bridge) && releases==3 && elapsed==500);
+ reset();connected=false;assert(!prepare_usb(&bridge) && elapsed==3250 && releases==0);
+ reset();bridge.stop=true;assert(!prepare_usb(&bridge) && releases==0);
  puts("PASS: real command implementation - arming, bounds, double click, scroll, drag interpolation, interruption, report failure, button release");
 }
 '''

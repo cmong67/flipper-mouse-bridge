@@ -239,7 +239,7 @@ final class MouseBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
         if let event=f[58] {
             let appState=numeric(fields(event)[1])
             if appState==1 && state == .starting { transition(.ready);if pending==nil { timer?.cancel();pump() } }
-            if appState==0 && (state == .ready || state == .armed) { failure="Flipper app stopped. Reconnect to start a fresh session.";stop();return }
+            if appState==0 && (state == .starting || state == .ready || state == .armed) { failure="Flipper app stopped. Reconnect to start a fresh session.";stop();return }
         }
         if let exchange=f[65],let bytes=fields(exchange)[1],active != nil {
             response=String(decoding:bytes,as:UTF8.self)

@@ -2,7 +2,7 @@
 
 Reconciled 2026-10-08, Asia/Hong_Kong, from repository history and the linked qualification reports. This retrospective index preserves the development sequence; it is not a verbatim conversation transcript. Commit dates identify saved checkpoints, not precise installation times.
 
-Current release: Mac **0.4.2 build 7**, Flipper **AI HID CTRL 0.4**. See [current release evidence](Pointer-Repair-v042.md) and [README](../README.md) for current operation. Earlier game defaults and qualification results are dated history.
+Current installed build: Mac **0.4.3 build 8**, Flipper **AI HID CTRL 0.5**. Hardware regression and installed GUI qualification passed. See [current release evidence](Stop-Release-v043.md) and [README](../README.md) for current operation. Earlier game defaults and qualification results are dated history.
 
 | Date | Milestone | Development record | Checkpoint | Evidence |
 |---|---|---|---|---|
@@ -43,3 +43,8 @@ Mac 0.4.2 build 7 replaces fixed fine-correction gain and restrictive learning b
 ## Extended shutdown finding — 2026-10-25
 
 Installed0.4.2 passed60 targets/60 normal mouse actions and5 reconnects, but held-drag disconnect left the host button down and subsequent USB reports failed. Ordinary serial restoration is insufficient release evidence. The0.4.3 candidate requests STOP before closing BLE; built/self-tested only, hardware reset/qualification pending. See [failure and candidate report](Stop-Release-v043.md).
+
+
+## Combined shutdown/readiness repair — 2026-10-25
+
+The first Mac-only0.4.3 candidate released a held button but failed its reconnect click and was rejected. The final pair adds Flipper0.5 USB readiness gating and Mac startup-exit failure handling. Both are installed;60 targets,60 normal commands, repeated held-drag release/reconnect, fresh-ARM guards, five process starts, focus refusal and SIGTERM release passed. The unchanged installed GUI then passed Bluetooth authorization, automated test-window focus/position/click, SAFE reconnect and Stop; final state OFFLINE with buttons0. Earlier failed results remain history; see [full repair paper](Stop-Release-v043.md).

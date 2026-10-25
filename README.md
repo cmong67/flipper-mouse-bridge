@@ -6,11 +6,15 @@ This is a personal project, not an official OpenAI product. “ChatGPT” names 
 
 ![Mac dashboard preview](docs/assets/controller-dashboard-v04.png)
 
+## Version 0.4.4 — exclusive startup and terminal hangup repair
+
+Current Mac build9 with unchanged AI HID CTRL0.5. Fixed mixed launch flags bypassing controller ownership and added graceful SIGHUP release. Final hardware tests passed60 targets/60 ordinary actions, reconnect and invocation recovery, three signal interruptions during confirmed held drags, and installed dashboard qualification. See [full results, exact build and limits](docs/Invocation-Qualification-v044.md). Use one launch mode; invalid combinations exit64 before live initialization. `--help` and `--version` are read-only. Stop all controllers before running `tests/test_invocation.py` against an absolute executable path.
+
 ## Version 0.4.3 — shutdown and USB readiness repair
 
 Mac build8 and AI HID CTRL0.5 are installed. Hardware tests passed60 positioning targets,60 normal mouse actions, five repeated held-drag Stop/reconnect cycles, focus rejection and termination during a drag. The Mac requests release before closing Bluetooth; the companion establishes USB report readiness before announcing startup. Installed dashboard connection, automated focus/position/click, SAFE reconnect and Stop also passed. See [repair, full qualification and limits](docs/Stop-Release-v043.md).
 
-Version0.4.2 repaired adaptive positioning but later failed an interrupted-drag shutdown test. Its [historical positioning report](docs/Pointer-Repair-v042.md) remains available; use the paired0.4.3/0.5 repair for the tested recovery behavior.
+Version0.4.2 repaired adaptive positioning but later failed an interrupted-drag shutdown test. Its [historical positioning report](docs/Pointer-Repair-v042.md) remains available; use the current0.4.4/0.5 pair for the tested recovery behavior.
 
 A second unchanged-build qualification passed120 targets,120 normal actions, ten reconnects, ten process starts, boundary inputs and13 held-action interruptions. See [repeat qualification and limits](docs/Repeat-Qualification-v043.md).
 

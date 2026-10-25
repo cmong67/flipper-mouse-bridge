@@ -2,7 +2,7 @@
 
 Reconciled 2026-10-08, Asia/Hong_Kong, from repository history and the linked qualification reports. This retrospective index preserves the development sequence; it is not a verbatim conversation transcript. Commit dates identify saved checkpoints, not precise installation times.
 
-Current installed build: Mac **0.4.3 build 8**, Flipper **AI HID CTRL 0.5**. Hardware regression and installed GUI qualification passed. See [current release evidence](Stop-Release-v043.md) and [README](../README.md) for current operation. Earlier game defaults and qualification results are dated history.
+Current installed build: Mac **0.4.4 build 9**, Flipper **AI HID CTRL 0.5**. Hardware regression and installed GUI qualification passed. See [current release evidence](Invocation-Qualification-v044.md) and [README](../README.md) for current operation. Earlier game defaults and qualification results are dated history.
 
 | Date | Milestone | Development record | Checkpoint | Evidence |
 |---|---|---|---|---|
@@ -53,3 +53,8 @@ The first Mac-only0.4.3 candidate released a held button but failed its reconnec
 ## Repeat qualification — 2026-10-25T18:36:22+03:00
 
 Unchanged installed0.4.3/0.5 pair passed120 positioning targets,120 ordinary actions, boundary input tests, ten reconnects/ten process starts and13 held-action interruptions including EOF and SIGINT. GUI click/scroll/drag, coordinate acknowledgements, companion readback and final release/signature checks passed. No production code or permission changes. A dashboard wheel-sign test assumption was corrected and both directions explicitly verified. See [repeat report](Repeat-Qualification-v043.md).
+
+
+## Exclusive invocation and hangup repair — 2026-10-25, Africa/Cairo
+
+Mixed preview/CLI flags in0.4.3 bypassed the ownership check during a safe absent-device reproduction. Exclusive launch parsing now rejects conflicting arguments before initialization. The first0.4.4 candidate exposed default SIGHUP termination in a mouse-disabled check; the final build adds graceful hangup release and repeats the core tests. Final0.4.4/0.5 passed60 positioning targets,60 normal hardware actions, varied invocation/recovery cases, confirmed held-drag release under SIGINT/SIGTERM/SIGHUP, installed GUI commands and SAFE reconnect. Existing Bluetooth permission refreshed by the owner; final dashboard OFFLINE, buttons released, USB restored. See [qualification and limits](Invocation-Qualification-v044.md). Earlier candidates and failures remain in private evidence.

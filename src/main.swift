@@ -6,8 +6,18 @@ func describe(_ result:Result<String,BridgeError>)->String {
     switch result { case let .success(text):return text;case let .failure(error):return "Error: \(error)" }
 }
 
-if CommandLine.arguments.contains("--self-test") {
-    supportTests();PointerMath.tests()
+guard let launch = LaunchOptions.parse(Array(CommandLine.arguments.dropFirst())) else {
+    fputs("Error: invalid or conflicting launch arguments.\n\(LaunchOptions.usage)\n", stderr)
+    exit(64)
+}
+if launch == .help { print(LaunchOptions.usage); exit(0) }
+if launch == .version {
+    let info = Bundle.main.infoDictionary ?? [:]
+    print("ChatGPT Mouse Controller \(info["CFBundleShortVersionString"] as? String ?? "unknown") build \(info["CFBundleVersion"] as? String ?? "unknown")")
+    exit(0)
+}
+if launch == .selfTest {
+    LaunchOptions.tests();supportTests();PointerMath.tests()
     for value:UInt64 in [0,1,127,128,16383,16384,UInt64.max] {let bytes=varint(value);var i=0;precondition(readVarint(bytes,&i)==value && i==bytes.count)}
     var i=0;precondition(readVarint([128],&i)==nil && i==0)
     let decoded=fields(number(1,7)+field(65,field(1,Array("DRAG 120 0 1000".utf8))))
@@ -15,20 +25,21 @@ if CommandLine.arguments.contains("--self-test") {
     precondition(fields(Array(field(1,[1,2,3]).dropLast())).isEmpty)
     print("PASS: RPC boundaries, partial frames, nested payload and truncation");exit(0)
 }
-if let index=CommandLine.arguments.firstIndex(of:"--render-dashboard"),CommandLine.arguments.count>index+1 {
+if case let .render(path) = launch {
     let app=NSApplication.shared;app.setActivationPolicy(.prohibited)
     let panel=ControlPanel(preview:true,renderOnly:true);panel.applicationDidFinishLaunching(Notification(name:NSApplication.didFinishLaunchingNotification))
     let view=panel.window.contentView!;view.layoutSubtreeIfNeeded();view.displayIfNeeded()
     guard let bitmap=view.bitmapImageRepForCachingDisplay(in:view.bounds) else {exit(3)}
     view.cacheDisplay(in:view.bounds,to:bitmap)
     guard let data=bitmap.representation(using:.png,properties:[:]) else {exit(3)}
-    do {try data.write(to:URL(fileURLWithPath:CommandLine.arguments[index+1]))} catch {fputs("Render failed: \(error)\n",stderr);exit(3)}
+    do {try data.write(to:URL(fileURLWithPath:path))} catch {fputs("Render failed: \(error)\n",stderr);exit(3)}
     print("Rendered read-only dashboard without activating a window or sending input.");exit(0)
 }
-let preview=CommandLine.arguments.contains("--dashboard-preview")
+let preview = launch == .preview
 var owner:SessionOwner?
 if !preview {do {owner=try SessionOwner()} catch {fputs("\(error)\n",stderr);exit(2)}}
-let gui = !CommandLine.arguments.contains("--cli")
+let gui: Bool
+if case .cli = launch { gui=false } else { gui=true }
 let bridge:MouseBridge
 var panel:ControlPanel?
 var cliTarget:TargetController?
@@ -39,7 +50,7 @@ if gui {
     NSApplication.shared.setActivationPolicy(.accessory)
     bridge=MouseBridge();cliTarget=TargetController(bridge:bridge)
     bridge.onState={state,_ in if state != .armed {cliTarget?.cancel()}}
-    bridge.connect(CommandLine.arguments.dropFirst().first{!$0.hasPrefix("--")} ?? "Flipper")
+    if case let .cli(name) = launch { bridge.connect(name) }
     pointerTicker=Timer.scheduledTimer(withTimeInterval:0.25,repeats:true) { _ in
         bridge.updatePointer(CGEvent(source:nil)?.location,busy:cliTarget?.busy ?? false)
     }
@@ -78,8 +89,8 @@ if gui {
         DispatchQueue.main.async {cliTarget?.cancel();bridge.stop {exit(0)}}
     }
 }
-signal(SIGINT,SIG_IGN);signal(SIGTERM,SIG_IGN)
-let signals=[SIGINT,SIGTERM].map {value -> DispatchSourceSignal in
+signal(SIGINT,SIG_IGN);signal(SIGTERM,SIG_IGN);signal(SIGHUP,SIG_IGN)
+let signals=[SIGINT,SIGTERM,SIGHUP].map {value -> DispatchSourceSignal in
     let source=DispatchSource.makeSignalSource(signal:value,queue:.main)
     source.setEventHandler {cliTarget?.cancel();panel?.target.cancel();bridge.stop {exit(0)}};source.resume();return source
 }

@@ -1,16 +1,18 @@
 # HID Emu — Flipper Zero + Cardputer
 
+<img src="assets/icons/HID_Emu_App_Icon_2026-11-18_v01.png" width="160" alt="HID Emu app icon">
+
 One local Mac dashboard for supervised mouse control through either **Flipper Zero** or **M5Stack Cardputer ADV**. The connected device supplies USB mouse input; the Mac provides coordinates, application names and observed mouse activity to both dashboards. No cloud service or background automation.
 
 | Component | Current release | Connection |
 |---|---|---|
-| HID Emu for macOS | 2.0.0, build 2 | One dashboard, selectable device |
+| HID Emu for macOS | 2.0.1, build 3 | One dashboard, selectable device |
 | Cardputer ADV companion | 1.3.0 | USB; selectable in M5Launcher |
 | Flipper Zero companion | 1.1.0 | Mac commands over Bluetooth; USB HID to host |
 
 ## Start
 
-Download the [Mac app ZIP](releases/hid-emu-2.0/HID_Emu_macOS_2.0.0_build2.zip), or build and install on a Mac with Xcode command-line tools: `zsh unified/build.sh --install`. Open **HID Emu** from your Applications folder. Allow Bluetooth when using Flipper, and macOS mouse-monitoring permissions if requested for observation.
+Download the [Mac app ZIP](releases/hid-emu-2.0.1/HID_Emu_macOS_2.0.1_build3.zip), or build and install on a Mac with Xcode command-line tools: `zsh unified/build.sh --install`. Open **HID Emu** from your Applications folder. Allow Bluetooth when using Flipper, and macOS mouse-monitoring permissions if requested for observation.
 
 Choose **Automatic**, **Cardputer**, or **Flipper Zero**, then Connect. Automatic prefers a recognized Cardputer when both are available; otherwise it tries Flipper. Enter your Flipper's distinctive Bluetooth name once. Generic Espressif USB names require local enrollment of your Cardputer's serial using `HIDEmu --register-cardputer SERIAL`; the app does not claim every ESP32 as a Cardputer. `--list-devices` lists recognized Cardputer ports. Selection applies when connecting; changing devices requires disconnecting first. Commands are never replayed after reconnecting.
 
@@ -44,7 +46,7 @@ The unified console rejects unsupported Flipper commands before transmission. Bo
 - Mac: `zsh unified/build.sh --install` builds and verifies an ad-hoc local signature. Installable bundle: `$HOME/Applications/HID Emu.app`.
 - Cardputer: `pio run -d cardputer/Firmware` with the pinned PlatformIO dependencies. The release `.bin` is an **application-only** image for an existing compatible M5Launcher; never write it to address zero. Back up the original full flash first. Update the existing `MouseBridge` Launcher slot with `flash overwrite MouseBridge SIZE`; retain that internal slot identifier for compatibility. On startup, firmware changes its menu display name to **HID Emu**. The SD card is optional for this installed slot.
 - Flipper: run `ufbt` inside `unified/Flipper` using a target-7 SDK matching the device API. The tested binary uses API 87.1. Copy it to `/ext/apps/Tools/ble_usb_mouse.fap`; that stable internal filename allows the Mac to launch it. Back up the existing FAP first. The visible app name is **HID Emu**.
-- [Versioned firmware and checksums](releases/hid-emu-2.0/manifest.json). Compare SHA256 before installation. Keep matching legacy Mac/companion pairs for rollback.
+- [Versioned firmware and checksums](releases/hid-emu-2.0.1/manifest.json). Compare SHA256 before installation. Keep matching legacy Mac/companion pairs for rollback.
 
 Run `zsh unified/Tests/run.sh` and `zsh cardputer/Tests/run.sh` for bounded protocol, safety and event-mapping tests. Hardware verification is separate: see the [unification report](docs/HID-Emu-Unification-2026-11-18.md) and [development history](docs/Development-History.md). Previous release qualifications do not qualify this new pair for Kingshot, held-action connection loss, sleep/wake or multiple-display edge cases.
 

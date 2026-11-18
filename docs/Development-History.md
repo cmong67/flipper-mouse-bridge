@@ -64,3 +64,8 @@ Mixed preview/CLI flags in0.4.3 bypassed the ownership check during a safe absen
 The Cardputer ADV branch evolved from a Launcher-selectable mouse bridge into a slate/blue dashboard with readable coordinates, active-app names, session time, live click/scroll indicators, direction arrows and a monitor-proportioned ten-position trail. Owner feedback exposed orientation, flicker and button-identity issues and supplied the directional scroll-color scheme. The owner subsequently requested one Mac app for Cardputer and Flipper Zero, then proposed the name **HID Emu**.
 
 Mac 2.0.0 build 2 now selects the appropriate transport; Cardputer 1.3.0 and Flipper 1.1.0 share its display vocabulary. Bounded command and event tests pass; both links passed safe integration movements and STOP during development. Final Flipper firmware readback matches its build. Earlier exact-target and interruption qualifications remain attached to their original versions. See the [evolution, evidence and remaining limits](HID-Emu-Unification-2026-11-18.md) and [current setup](../README.md).
+
+
+## Native HID Emu icon — 2026-11-18, America/Los_Angeles
+
+The owner requested an upgraded Mac icon after unification. Mac2.0.1 build3 adds a slate-blue pointer/wheel design with distinct orange and cyan device connections, preserving the earlier icon lineage. Native ICNS packaging and bundle metadata are included in the reproducible build; mouse-control code and companion firmware are unchanged. See the [artwork and installation record](HID-Emu-Icon-2026-11-18.md).

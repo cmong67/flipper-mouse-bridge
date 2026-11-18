@@ -5,6 +5,7 @@ stage=$(mktemp -d /tmp/mouse-bridge-build.XXXXXX)
 app="$stage/HID Emu.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp Info.plist "$app/Contents/Info.plist"
+cp Resources/HIDEmu.icns "$app/Contents/Resources/HIDEmu.icns"
 swiftc -swift-version 5 -O Sources/*.swift -o "$app/Contents/MacOS/HIDEmu"
 xattr -cr "$app"
 codesign --force --deep --sign - "$app"

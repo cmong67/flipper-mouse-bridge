@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>HID Emu</string>
+	<key>CFBundleExecutable</key>
+	<string>HIDEmu</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.mousebridge.unified</string>
+	<key>CFBundleName</key>
+	<string>HID Emu</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Connect to your Flipper Zero mouse bridge using Bluetooth; pointer output travels through its USB cable.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+</dict>
+</plist>

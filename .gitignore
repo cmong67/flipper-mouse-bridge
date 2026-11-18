@@ -6,3 +6,9 @@ flipper_mouse/dist/
 flipper_mouse/.ufbt/
 
 flipper_mouse/.vscode/
+
+unified/Flipper/dist/
+unified/Flipper/.ufbt/
+unified/Flipper/.vscode/
+cardputer/Firmware/.pio/
+Backups/

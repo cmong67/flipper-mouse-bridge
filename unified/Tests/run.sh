@@ -1,0 +1,8 @@
+#!/bin/zsh
+set -eu
+cd -- "$(dirname -- "$0")/.."
+stage=$(mktemp -d /tmp/hid-emu-tests.XXXXXX)
+trap 'rm -rf "$stage"' EXIT
+python3 Tests/test_flipper.py
+swiftc -swift-version 5 Sources/BridgeSupport.swift Sources/FlipperCommands.swift Sources/MouseInput.swift Tests/input_test.swift -o "$stage/input"
+"$stage/input"

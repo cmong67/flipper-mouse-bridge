@@ -1,107 +1,51 @@
-# ChatGPT Mouse Controller
+# HID Emu — Flipper Zero + Cardputer
 
-A local Mac dashboard and **AI HID CTRL** Flipper Zero companion for supervised USB mouse control. Bluetooth transports bounded commands; the Flipper delivers USB HID input. The controller works with an explicitly selected application. It contains no game-specific startup, triggers or gameplay logic.
+One local Mac dashboard for supervised mouse control through either **Flipper Zero** or **M5Stack Cardputer ADV**. The connected device supplies USB mouse input; the Mac provides coordinates, application names and observed mouse activity to both dashboards. No cloud service or background automation.
 
-This is a personal project, not an official OpenAI product. “ChatGPT” names the intended collaboration workflow; the app has no ChatGPT/API connection, cloud service, account, telemetry or background automation.
+| Component | Current release | Connection |
+|---|---|---|
+| HID Emu for macOS | 2.0.0, build 2 | One dashboard, selectable device |
+| Cardputer ADV companion | 1.3.0 | USB; selectable in M5Launcher |
+| Flipper Zero companion | 1.1.0 | Mac commands over Bluetooth; USB HID to host |
 
-![Mac dashboard preview](docs/assets/controller-dashboard-v04.png)
+## Start
 
-## Version 0.4.4 — exclusive startup and terminal hangup repair
+Download the [Mac app ZIP](releases/hid-emu-2.0/HID_Emu_macOS_2.0.0_build2.zip), or build and install on a Mac with Xcode command-line tools: `zsh unified/build.sh --install`. Open **HID Emu** from your Applications folder. Allow Bluetooth when using Flipper, and macOS mouse-monitoring permissions if requested for observation.
 
-Current Mac build9 with unchanged AI HID CTRL0.5. Fixed mixed launch flags bypassing controller ownership and added graceful SIGHUP release. Final hardware tests passed60 targets/60 ordinary actions, reconnect and invocation recovery, three signal interruptions during confirmed held drags, and installed dashboard qualification. See [full results, exact build and limits](docs/Invocation-Qualification-v044.md). Use one launch mode; invalid combinations exit64 before live initialization. `--help` and `--version` are read-only. Stop all controllers before running `tests/test_invocation.py` against an absolute executable path.
+Choose **Automatic**, **Cardputer**, or **Flipper Zero**, then Connect. Automatic prefers a recognized Cardputer when both are available; otherwise it tries Flipper. Enter your Flipper's distinctive Bluetooth name once. Generic Espressif USB names require local enrollment of your Cardputer's serial using `HIDEmu --register-cardputer SERIAL`; the app does not claim every ESP32 as a Cardputer. `--list-devices` lists recognized Cardputer ports. Selection applies when connecting; changing devices requires disconnecting first. Commands are never replayed after reconnecting.
 
-## Version 0.4.3 — shutdown and USB readiness repair
-
-Mac build8 and AI HID CTRL0.5 are installed. Hardware tests passed60 positioning targets,60 normal mouse actions, five repeated held-drag Stop/reconnect cycles, focus rejection and termination during a drag. The Mac requests release before closing Bluetooth; the companion establishes USB report readiness before announcing startup. Installed dashboard connection, automated focus/position/click, SAFE reconnect and Stop also passed. See [repair, full qualification and limits](docs/Stop-Release-v043.md).
-
-Version0.4.2 repaired adaptive positioning but later failed an interrupted-drag shutdown test. Its [historical positioning report](docs/Pointer-Repair-v042.md) remains available; use the current0.4.4/0.5 pair for the tested recovery behavior.
-
-A second unchanged-build qualification passed120 targets,120 normal actions, ten reconnects, ten process starts, boundary inputs and13 held-action interruptions. See [repeat qualification and limits](docs/Repeat-Qualification-v043.md).
-
-## Version 0.4.1 — historical Mac icon installation
-
-Native app icon installed in build 6; mouse code and Flipper 0.4 unchanged. [Installation evidence and current reconnect status](docs/Icon-Installation-v041.md).
-
-## Version 0.4 — installed display update
-
-The 0.4.0 build 5 release introduced the display update with AI HID CTRL 0.4. The Mac map uses a fading tail of the last 20 positions. The Flipper keeps logical screen X/Y visible through a bounded idle-channel feed and marks readings OLD after one second without an update. Live reconnect and coordinate acknowledgements passed with mouse control disabled after the owner refreshed the existing Bluetooth permission. See [release evidence and limits](docs/Pointer-Display-v04.md).
-
-## Version 0.3 — historical supervised qualification passed
-
-**Verified on the final installed build:** GUI startup, reconnect and full relaunch; browser mouse buttons/double click, both scroll directions and drag;20/20 positioning targets within4 logical points (mean1.131 seconds); fresh-arm enforcement and normal Stop/USB restoration. The earlier GUI startup gate was resolved by refreshing the existing Bluetooth grant for the installed executable. Physical BACK, held-button connection loss, sleep/wake and multi-display behavior remain unqualified.
-
-- Exact running-app selection by PID, or an application file for optional launch.
-- Live screen coordinates in logical points, target-window coordinates/percentages and a desktop pointer map with trail.
-- Active/last commands, queue depth, command count and measured Bluetooth-command latency.
-- Bounded adaptive positioning, 50 ms observation settling, no center movement during preparation and no redundant `MOVE 0 0` round trip.
-- Focus/window verification at dispatch, one positioning task, bounded queue/expiry, fresh arming, Stop/disconnect recovery.
-- Flipper display: SAFE/ARMED, BLE/USB status, active/last command, processed command count, last execution duration and physical BACK to stop/release.
-
-Speed improvement must be measured on equivalent targets. Historical version0.2 averaged1.49 seconds for20 targets; this is not a v0.3 performance claim. See [revision review and qualification](docs/General-Purpose-Controller.md).
-
-The companion app-list name and device header are now **AI HID CTRL**. The Mac app remains ChatGPT Mouse Controller. A later Kingshot run passed Connect/ARM but failed its focused-visible-window Prepare check; that game-specific condition remains unresolved despite browser qualification.
-
-## Build
-
-```sh
-sh scripts/build-mac.sh
-python3 tests/test_mouse_commands.py
-python3 -m venv .venv
-.venv/bin/pip install ufbt==0.2.6
-.venv/bin/ufbt update --branch=1.4.3
-cd flipper_mouse
-../.venv/bin/ufbt
-```
-
-Optional stable app signing: set `MOUSE_CODESIGN_IDENTITY` to an existing Apple Development or Developer ID identity before building. The default is ad-hoc signing; changed builds can invalidate macOS privacy grants even while Settings shows them enabled. Git commit signing is separate from app signing. No certificate/account is provisioned by this script.
-
-The build prints a verified temporary Mac bundle and also copies it into `dist/ChatGPT Mouse Controller.app`. Cloud-sync metadata can invalidate the copied bundle signature; verify the installed copy from the temporary build. The Flipper build produces `flipper_mouse/dist/ble_usb_mouse.fap`; transfer to `/ext/apps/Tools/ble_usb_mouse.fap` only after stopping the old controller and confirming ordinary USB is restored. Keep a backup of the prior FAP. Official firmware1.4.3/API87.1/target7 is the build target; no firmware replacement is required.
+Viewing is available while disarmed. **Arm 60s** before sending input. **STOP** or **Command-period** requests release; Flipper disconnects and restores its normal USB interface. Reconnect and arm afresh for further commands. Cardputer also stops with **S** or **G0**; Flipper's physical **BACK** exits the companion. Close qFlipper and earlier controller apps before connecting.
 
 ## Dashboard
 
-Keep USB connected, enable Bluetooth, close qFlipper. Select the exact running target (or Choose app), enter a distinctive Flipper name, Connect, then Enable mouse after Ready. Prepare target focuses it and checks a visible window; it does not click or move the pointer. Confirm the target screen has loaded before any action.
+- Current coordinates, active app and app beneath the pointer, command replies and session uptime.
+- Clean blue/slate Mac and Cardputer screens; matching compact monochrome Flipper layout.
+- Ten recent distinct positions in an aspect-fitted radar trail with a direction arrow. This is a relative trajectory centered on the newest point, not an absolute desktop map.
+- Left/right/middle button indicators, clicks and double clicks, dragging and wheel activity. UP is green, DOWN amber and horizontal blue where color is available. Flipper uses UP/DOWN text and symbols plus its middle indicator.
+- Mac observation includes combined system mouse events, including bridge-generated events; it cannot identify the physical mouse. Display telemetry never executes HID input or renews arming.
 
-Choose a command and X/Y percentages measured from the target window’s top-left. Position + send focuses the target, moves via observed HID corrections, rechecks guards, and executes. Use target pointer copies the last observed pointer within that selected window (up to30 seconds old, with unchanged window geometry) into the percentage fields; it does not send input. Confirm the intended control before sending. Stop cancels queued work, requests button release and allows350ms before disconnecting. Held-drag shutdown passed the documented tests; abrupt transport/power loss remains unqualified.
+Coordinates use macOS points; HID movement counts have a different scale. The radar follows the monitor beneath the pointer. Names are shortened on device screens. Device LIVE time measures uninterrupted fresh host telemetry; Mac session uptime measures the connection, not cumulative armed time.
 
-Read-only preview: `mouse-bridge --dashboard-preview`. Offline visual QA: `mouse-bridge --render-dashboard /absolute/path/preview.png`. Neither mode sends commands or takes controller ownership.
+## Command support
 
-## CLI
+| Command | Cardputer | Flipper |
+|---|---|---|
+| `move X Y` | ±2048 per axis | ±127 per axis |
+| `click BUTTON`, `double BUTTON` | Five buttons | Left/right/middle |
+| `down BUTTON`, `up BUTTON` | Yes; 1.5-second held-button watchdog | Unavailable in unified console |
+| `drag left X Y` | Bounded gesture | ±2000 per axis, 500 ms |
+| `scroll N` | Vertical; horizontal also supported | Vertical ±127 |
+| `ping`, `info`, `status`, `stop` | Yes | Yes |
 
-```text
-mouse-bridge --cli DISTINCTIVE_DEVICE_NAME
-ARM
-TARGET EXACT_RUNNING_PID
-PREPARE
-STATUS
-ACTION 50 50 CLICK 1 1
-ACTION 40 60 DRAG 0 240 500
-POINT 800 400
-HERE SCROLL -3
-DISCONNECT
-CONNECT DISTINCTIVE_DEVICE_NAME
-ARM
-STOP
-```
+The unified console rejects unsupported Flipper commands before transmission. Both companions expire arming after 60 seconds. Local command queues are bounded and expire stale work. Only one cooperating controller session owns the link. The old controller's exact-process target guard and adaptive percentage positioning are **legacy features**, not part of this common console.
 
-`TARGET` accepts a PID or a unique running bundle ID; ambiguous matches fail. `APPLICATION /absolute/path/Selected.app` selects a particular installation; `PREPARE` may launch it. `ACTION X% Y% COMMAND` focuses/positions/checks the selected target. `POINT X Y` uses global screen points and requires target focus. Raw mouse commands and `HERE` are also guarded at the current pointer. Only PING/ARM and display-only POS bypass target selection. No old game default remains: existing integrations must explicitly select their target. STOP exits the CLI; DISCONNECT preserves its process. Reconnect never replays work or arms automatically.
+## Build, install and recover
 
-| Command | Bounds |
-|---|---|
-| PING / ARM | Connection health / enable this session |
-| POS x y | Display-only logical screen coordinates; each axis −99999…99999 |
-| MOVE x y | Each axis −127…127 HID counts |
-| CLICK button count | Button1 left,2 right,4 middle; count1…2 |
-| SCROLL delta | −127…127; vertical wheel |
-| DRAG x y ms | Each axis −2000…2000 counts;100…3000 ms |
+- Mac: `zsh unified/build.sh --install` builds and verifies an ad-hoc local signature. Installable bundle: `$HOME/Applications/HID Emu.app`.
+- Cardputer: `pio run -d cardputer/Firmware` with the pinned PlatformIO dependencies. The release `.bin` is an **application-only** image for an existing compatible M5Launcher; never write it to address zero. Back up the original full flash first. Update the existing `MouseBridge` Launcher slot with `flash overwrite MouseBridge SIZE`; retain that internal slot identifier for compatibility. On startup, firmware changes its menu display name to **HID Emu**. The SD card is optional for this installed slot.
+- Flipper: run `ufbt` inside `unified/Flipper` using a target-7 SDK matching the device API. The tested binary uses API 87.1. Copy it to `/ext/apps/Tools/ble_usb_mouse.fap`; that stable internal filename allows the Mac to launch it. Back up the existing FAP first. The visible app name is **HID Emu**.
+- [Versioned firmware and checksums](releases/hid-emu-2.0/manifest.json). Compare SHA256 before installation. Keep matching legacy Mac/companion pairs for rollback.
 
-Coordinates are logical screen points, not Retina pixels or HID counts. Native Apple/CUA remains preferred when it works; use hardware for a specific observed failure. Target focus/geometry guards do not continuously guarantee focus throughout a held drag; supervise it. Trackpad pinch/rotation and horizontal scrolling are outside this protocol.
+Run `zsh unified/Tests/run.sh` and `zsh cardputer/Tests/run.sh` for bounded protocol, safety and event-mapping tests. Hardware verification is separate: see the [unification report](docs/HID-Emu-Unification-2026-11-18.md) and [development history](docs/Development-History.md). Previous release qualifications do not qualify this new pair for Kingshot, held-action connection loss, sleep/wake or multiple-display edge cases.
 
-## Records
-
-- [Progressive development history and checkpoints](docs/Development-History.md)
-- [General-purpose revision and device dashboard design](docs/General-Purpose-Controller.md)
-- [Original development paper](docs/Development-Paper.md)
-- [Historical validation](docs/Validation.md) and [v0.2 qualification](docs/Refined-App-Qualification.md)
-- [Roadmap](docs/Roadmap.md)
-
-Historical game tests are dated evidence; application-specific launch/routing policy belongs to the client workflow. Personal device identities, raw logs, account data and private vault notes are excluded from this repository.
+[Historical controller and its qualification reports](docs/Legacy-Controller.md) remain available. This is a personal hardware project, with no official affiliation to the device manufacturers or OpenAI.

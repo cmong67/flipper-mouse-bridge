@@ -104,3 +104,12 @@ func supportTests() {
     precondition(rejected != nil && !rejected!.validWhen())
     print("PASS: input bounds, queue capacity, action expiry, cancellation and dispatch guard")
 }
+
+// At high BLE latency both feeds remain due; alternate them rather than starving one.
+enum TelemetrySchedule {
+    enum Choice {case none,host,observation}
+    static func next(hostDue:Bool,observationDue:Bool,lastHost:Double,lastObservation:Double)->Choice {
+        if observationDue && (!hostDue || lastObservation<=lastHost) {return .observation}
+        return hostDue ? .host:.none
+    }
+}

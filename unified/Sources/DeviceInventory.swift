@@ -3,7 +3,8 @@ import IOKit
 import IOKit.serial
 
 enum DeviceInventory {
-    static func cardputerPorts()->[String] {
+    static func cardputerPorts()->[String] { firmwarePorts(for:"cardputer") }
+    static func firmwarePorts(for kind:String?=nil)->[String] {
         var iterator:io_iterator_t=0
         guard IOServiceGetMatchingServices(kIOMainPortDefault,IOServiceMatching(kIOSerialBSDServiceValue),&iterator)==KERN_SUCCESS else{return []}
         defer{IOObjectRelease(iterator)}
@@ -16,7 +17,11 @@ enum DeviceInventory {
             let product=IORegistryEntrySearchCFProperty(service,kIOServicePlane,"USB Product Name" as CFString,kCFAllocatorDefault,options) as? String ?? ""
             let serial=IORegistryEntrySearchCFProperty(service,kIOServicePlane,"USB Serial Number" as CFString,kCFAllocatorDefault,options) as? String ?? ""
             let enrolled=UserDefaults.standard.stringArray(forKey:"CardputerSerials") ?? []
-            if product.localizedCaseInsensitiveContains("Cardputer") || (!serial.isEmpty && enrolled.contains(serial)) {ports.append(path)}
+            func normalized(_ value:String)->String {value.filter{$0.isLetter || $0.isNumber}.uppercased()}
+            let vendor=IORegistryEntrySearchCFProperty(service,kIOServicePlane,"USB Vendor Name" as CFString,kCFAllocatorDefault,options) as? String ?? ""
+            let cardputer=product.localizedCaseInsensitiveContains("Cardputer") || (!serial.isEmpty && enrolled.contains(where:{normalized($0)==normalized(serial)}))
+            let flipper=product.localizedCaseInsensitiveContains("Flipper") || vendor.localizedCaseInsensitiveContains("Flipper Devices")
+            if (kind==nil && (cardputer || flipper)) || (kind=="cardputer" && cardputer) || (kind=="flipper" && flipper) {ports.append(path)}
         }
         return ports.sorted()
     }

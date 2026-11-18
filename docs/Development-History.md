@@ -69,3 +69,10 @@ Mac 2.0.0 build 2 now selects the appropriate transport; Cardputer 1.3.0 and Fli
 ## Native HID Emu icon — 2026-11-18, America/Los_Angeles
 
 The owner requested an upgraded Mac icon after unification. Mac2.0.1 build3 adds a slate-blue pointer/wheel design with distinct orange and cyan device connections, preserving the earlier icon lineage. Native ICNS packaging and bundle metadata are included in the reproducible build; mouse-control code and companion firmware are unchanged. See the [artwork and installation record](HID-Emu-Icon-2026-11-18.md).
+
+
+## Compact interface, companion updates and spectrum feedback — 2026-11-18, America/Los_Angeles
+
+Owner feedback drove Mac 2.3.0 build 6: consistent spacing, compact navigation, versioned title and a runtime Dock-icon fix. The owner then requested automatic update checks and an evolution of the original target. Classic preserves it; Quiet RGB adds slow idle spectrum rotation, fixed directional colors, gentle single/double pulses and wheel feedback, raised 10% in intensity following the final request. Coordinates remain explicitly upper-left.
+
+Cardputer 1.4.0 and Flipper 1.2.0 share sequenced feedback, direction geometry and pulse timing. Review addressed repeated-pulse restarts, telemetry starvation, oversized Flipper numbers and very thin radar bounds. Native builds and bounded checks passed. The final Mac updater installed both companions: Flipper complete readback and reconnect passed; Cardputer running-version/STOP and reconnect passed. Owner-reported physical feedback acceptance: “Looks good.” Earlier failed USB preflights and the dropped reboot reply remain recorded. No Kingshot or new live held-action fault qualification is claimed. See the [release report](HID-Emu-Spectrum-Updates-2026-11-18.md).

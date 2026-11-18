@@ -7,6 +7,7 @@
 #include <Preferences.h>
 #include "bridge.h"
 #include "host.h"
+#include "spectrum_feedback.h"
 static const uint8_t descriptor[]={
  0x05,0x01,0x09,0x02,0xa1,0x01,0x09,0x01,0xa1,0x00,
  0x05,0x09,0x19,0x01,0x29,0x05,0x15,0x00,0x25,0x01,0x75,0x01,0x95,0x05,0x81,0x02,
@@ -31,7 +32,7 @@ public:
 CommandMouse mouse;
 Bridge bridge(mouse);
 char line[97];size_t length=0;bool discard=false;
-constexpr const char *kVersion="1.3.0";
+constexpr const char *kVersion="1.4.0";
 int hostX=0,hostY=0,hostDisplay=0;
 char hostApp[49]="Waiting for Mac";
 uint32_t hostUpdated=0,commands=0,hostSessionAt=0;
@@ -41,6 +42,8 @@ char lastObserved[40]="";uint32_t observedAt=0;bool gotObserved=false;
 ObservedInput observed={0,0,0,0,0,0,0};
 int trailX[10],trailY[10],trailCount=0;
 int viewportWidth=16,viewportHeight=9;
+SpectrumFeedback targetFeedback={};
+int legacyEvent=0;
 uint32_t wheelAt=0;bool gotWheel=false;int wheelDirection=0;
 M5Canvas frame(&M5Cardputer.Display);
 bool frameReady=false;
@@ -49,6 +52,7 @@ char paintedState[256]="";
 void draw() {
  if(!frameReady) return;
  auto &lcd=frame;
+ const uint16_t up=spectrum_565(spectrum_rgb(SpectrumUp)),right=spectrum_565(spectrum_rgb(SpectrumRight)),down=spectrum_565(spectrum_rgb(SpectrumDown)),leftColor=spectrum_565(spectrum_rgb(SpectrumLeft));
  const uint16_t bg=0x0862,panel=0x10c4,accent=0x5d9f,text=0xe77e,muted=0x8cd5,healthy=0x5695,amber=0xf58b;
  bool live=gotHost && uint32_t(millis()-hostUpdated)<2000;
  bool usbReady=mouse.ready();
@@ -63,6 +67,7 @@ void draw() {
  snprintf(state,sizeof(state),"%d|%d|%lu|%u|%d|%d|%d|%d|%d|%s|%s|%lu|%s",usbReady,bridge.armed(),(unsigned long)bridge.remainingSeconds(),bridge.buttons(),gotHost,live,hostX,hostY,hostDisplay,hostApp,lastAction,(unsigned long)commands,uptime);
  // Include live physical button and motion state in the frame cache.
  size_t used=strlen(state);snprintf(state+used,sizeof(state)-used,"|%d|%d|%d|%d|%d|%d|%d|%d",observed.buttons,observed.dx,observed.dy,arrowLive,viewportWidth,viewportHeight,wheelActive,wheelDirection);
+ used=strlen(state);snprintf(state+used,sizeof(state)-used,"|%lu",live?(unsigned long)(millis()/125):0UL);
  if(!strcmp(state,paintedState)) return;
  lcd.fillScreen(bg);lcd.setFont(&fonts::Font0);lcd.setTextSize(1);
  lcd.fillRect(0,0,240,16,panel);lcd.setTextColor(accent,panel);lcd.setCursor(7,4);lcd.print("HID EMU");
@@ -79,10 +84,10 @@ void draw() {
  bool physicalLive=live && gotObserved;
  int physical=physicalLive?observed.buttons:0;
  lcd.drawRoundRect(202,38,21,29,6,muted);
- if(physical&1) lcd.fillRoundRect(204,40,8,11,2,accent);
- if(physical&2) lcd.fillRoundRect(213,40,8,11,2,accent);
+ if(physical&1) lcd.fillRoundRect(204,40,8,11,2,leftColor);
+ if(physical&2) lcd.fillRoundRect(213,40,8,11,2,right);
  lcd.drawFastVLine(212,39,12,muted);lcd.drawFastHLine(203,52,19,muted);
- lcd.fillRoundRect(210,43,5,7,2,wheelActive?(wheelDirection>0?healthy:(wheelDirection<0?amber:accent)):((physical&4)?accent:muted));
+ lcd.fillRoundRect(210,43,5,7,2,wheelActive?(wheelDirection==1?up:(wheelDirection==-1?down:(wheelDirection==2?leftColor:right))):((physical&4)?accent:muted));
  int plotW=32,plotH=32;
  if(viewportWidth>=viewportHeight) plotH=max(1,32*viewportHeight/viewportWidth);
  else plotW=max(1,32*viewportWidth/viewportHeight);
@@ -106,10 +111,28 @@ void draw() {
   float scale=max(abs(observed.dx)/halfW,abs(observed.dy)/halfH);
   int ax=int(observed.dx/scale),ay=int(observed.dy/scale);
   int tipX=174+ax,tipY=53+ay;
-  lcd.drawLine(174-ax/2,53-ay/2,tipX,tipY,accent);
+  uint16_t directionColor=spectrum_565(spectrum_rgb(spectrum_direction(observed.dx,observed.dy)));
+  lcd.drawLine(174-ax/2,53-ay/2,tipX,tipY,directionColor);
   int backX=tipX-ax/2,backY=tipY-ay/2;
-  lcd.fillTriangle(tipX,tipY,backX-ay/3,backY+ax/3,backX+ay/3,backY-ax/3,accent);
+  lcd.fillTriangle(tipX,tipY,backX-ay/3,backY+ax/3,backX+ay/3,backY-ax/3,directionColor);
  } else lcd.fillCircle(174,53,2,muted);
+ if(live && min(plotW,plotH)>=8) {
+  int radius=max(2,min(6,min(plotW,plotH)/2-2));
+  uint8_t strength=spectrum_strength(&targetFeedback,millis());
+  int direction=strength?targetFeedback.direction:(uint32_t(millis()-targetFeedback.motion_at)<300?targetFeedback.motion_direction:SpectrumNone);
+  uint32_t activeColor=spectrum_rgb(direction);
+  for(int q=0;q<4;++q) {
+   bool selected=(direction==SpectrumUp && q<2)||(direction==SpectrumRight && (q==0||q==3))||(direction==SpectrumDown && q>=2)||(direction==SpectrumLeft && (q==1||q==2));
+   uint32_t rgb=selected?spectrum_brightness(activeColor,168+112*strength/255):spectrum_brightness(spectrum_idle_rgb(q,millis()),280);
+   uint16_t color=spectrum_565(rgb);
+   for(int segment=0;segment<3;++segment) {
+    float a=(q*90+8+segment*24)*0.017453293f,b=(q*90+8+(segment+1)*24)*0.017453293f;
+    lcd.drawLine(174+int(cosf(a)*radius),53-int(sinf(a)*radius),174+int(cosf(b)*radius),53-int(sinf(b)*radius),color);
+   }
+  }
+  if(strength && targetFeedback.scroll) lcd.fillRect(173,51,3,5,spectrum_565(spectrum_brightness(activeColor,280*strength/255)));
+ }
+
  lcd.setTextSize(1);lcd.setTextColor(accent,bg);lcd.setCursor(7,79);lcd.print("APP");
  lcd.setTextColor(text,bg);lcd.setCursor(33,79);lcd.printf("%.32s",hostApp);
  lcd.setTextColor(muted,bg);lcd.setCursor(7,92);lcd.print("LAST");lcd.setCursor(39,92);lcd.printf("%.31s",lastAction);
@@ -181,11 +204,12 @@ void loop() {
      snprintf(response,sizeof(response),"OK APPNAME=%s",name.c_str());result=response;
     } else if(!discard && !strcmp(line,"info")) {
      snprintf(response,sizeof(response),"OK BRIDGE=%s",kVersion);result=response;
-    } else if(!discard && !strncmp(line,"observe input ",14)) {
-     ObservedInput input;
-     if(parseObservedInput(line+14,input)) {
+    } else if(!discard && (!strncmp(line,"observe input ",14) || !strncmp(line,"observe event ",14))) {
+     ObservedInput input;int sequence=0;bool sequenced=!strncmp(line,"observe event ",14);
+     if(sequenced?parseObservedEvent(line+14,input,sequence):parseObservedInput(line+14,input)) {
+      spectrum_observe(&targetFeedback,sequenced?sequence:(++legacyEvent%100000),input.kind,input.button,input.dx,input.dy,input.wx,input.wy,millis());
       observed=input;observedAt=millis();gotObserved=true;
-      if(input.kind==5 && (input.wx || input.wy)) {wheelAt=millis();gotWheel=true;wheelDirection=abs(input.wy)>=abs(input.wx)?(input.wy>0?1:-1):0;}
+      if(input.kind==5 && (input.wx || input.wy)) {wheelAt=millis();gotWheel=true;wheelDirection=abs(input.wy)>=abs(input.wx)?(input.wy>0?1:-1):(input.wx>0?2:-2);}
       const char *buttonNames[]={"LEFT","RIGHT","MIDDLE","BACK","FORWARD"};
       const char *button=buttonNames[input.button];
       switch(input.kind) {

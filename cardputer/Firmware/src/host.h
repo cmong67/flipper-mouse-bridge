@@ -40,3 +40,11 @@ inline bool parseViewport(const char *text,int &width,int &height) {
  }
  width=v[0];height=v[1];return true;
 }
+
+inline bool parseObservedEvent(const char *text,ObservedInput &out,int &sequence) {
+ if(*text<'0' || *text>'9') return false;
+ char *end;errno=0;long n=strtol(text,&end,10);
+ if(errno==ERANGE || n<0 || n>99999 || *end!=' ') return false;
+ if(!parseObservedInput(end+1,out)) return false;
+ sequence=(int)n;return true;
+}

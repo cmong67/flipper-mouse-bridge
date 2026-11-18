@@ -6,6 +6,7 @@ a=src.index('static bool wait_safe(')
 b=src.index('int32_t ble_usb_mouse_app(')
 harness=r'''
 #include "dashboard_protocol.h"
+#include "spectrum_feedback.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -41,6 +42,7 @@ typedef struct {
     int width,height,physical,mouse_button,kind,mx,my,wheel_direction;
     int trail_x[10],trail_y[10],trail_count;
     char app[23],action[24];
+    SpectrumFeedback feedback;int legacy_event;
 } Bridge;
 
 static Bridge bridge;
@@ -77,6 +79,10 @@ int main(void) {
  execute(&bridge,"MOVE 127 -127");assert(dx==127 && dy==-127 && !strcmp(response,"DONE"));
  execute(&bridge,"MOVE 128 0");assert(movements==1 && strstr(response,"invalid"));
  execute(&bridge,"MOVE 0 0 garbage");assert(movements==1 && strstr(response,"invalid"));
+ execute(&bridge,"MOVE 9999999999999999999999 0");assert(movements==1 && strstr(response,"invalid"));
+ execute(&bridge,"SCROLL -9999999999999999999999");assert(wheel==0 && strstr(response,"invalid"));
+ execute(&bridge,"CLICK 9999999999999999999999 1");assert(releases==0 && strstr(response,"invalid"));
+ execute(&bridge,"DRAG 9999999999999999999999 0 100");assert(releases==0 && strstr(response,"invalid"));
  execute(&bridge,"CLICK 1 2");assert(!pressed && releases==2 && elapsed==160);
  execute(&bridge,"CLICK 8 1");assert(releases==2 && strstr(response,"invalid"));
  execute(&bridge,"SCROLL -3");assert(wheel==-3);
@@ -91,7 +97,7 @@ int main(void) {
  reset();execute(&bridge,"viewport 1800 1169");assert(bridge.width==1800 && bridge.height==1169);
  execute(&bridge,"viewport 0 1169");assert(bridge.width==1800 && strstr(response,"ERROR"));
  execute(&bridge,"host -50 200 1 TextEdit");assert(!strcmp(bridge.app,"TextEdit") && bridge.ui_x==-50 && bridge.trail_count==1);
- execute(&bridge,"observe input 6 0 1 0 0 0 0");assert(!strcmp(bridge.action,"DOUBLE CLICK RIGHT"));
+ execute(&bridge,"observe event 1 6 0 1 0 0 0 0");assert(!strcmp(bridge.action,"DOUBLE CLICK RIGHT"));
  execute(&bridge,"observe input 5 0 2 0 0 0 10");assert(bridge.wheel_direction==1);
  execute(&bridge,"observe input 5 0 2 0 0 0 -10");assert(bridge.wheel_direction==-1);
  execute(&bridge,"observe input 5 0 2 0 0 0 -999999999999999999999999999");assert(strstr(response,"ERROR"));

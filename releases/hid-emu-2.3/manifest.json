@@ -1,0 +1,26 @@
+{
+  "mac": {
+    "version": "2.3.0",
+    "build": 6,
+    "file": "HID_Emu_macOS_2.3.0_build6.zip",
+    "bytes": 2196938,
+    "sha256": "873834cefda25d62d7af7be84e736bcec74e53628512c52b1b2d32404f192d9e",
+    "executable_sha256": "4c29da5ed5cd93bc9bb38128cd5e5d761078d39ca99668cf513d670c2e9ca273",
+    "icon_sha256": "6cd84cd0712b6954f3d046e5fc82ecd6aebc6a7f344af62c92ad8730773a6a35"
+  },
+  "cardputer": {
+    "version": "1.4.0",
+    "bytes": 591040,
+    "sha256": "62ed39769dcc572fd6f8e5592b1b989853ba97fd462b1cc18fa8b35fc25a1476",
+    "file": "HID_Emu_Cardputer_ADV_1.4.0.bin"
+  },
+  "flipper": {
+    "version": "1.2.0",
+    "bytes": 12352,
+    "sha256": "45c1d942c3362f0f9630db633a603299e2e3ebd4bab4084b22fced246bba406f",
+    "target": 7,
+    "apiMajor": 87,
+    "apiMinor": 1,
+    "file": "HID_Emu_Flipper_1.2.0.fap"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "packages": [
+    {
+      "id": "cardputer",
+      "name": "Cardputer ADV",
+      "version": "1.4.0",
+      "bytes": 591040,
+      "sha256": "62ed39769dcc572fd6f8e5592b1b989853ba97fd462b1cc18fa8b35fc25a1476",
+      "file": "cardputer.bin",
+      "url": "https://raw.githubusercontent.com/cmong67/flipper-mouse-bridge/main/releases/hid-emu-2.3/HID_Emu_Cardputer_ADV_1.4.0.bin"
+    },
+    {
+      "id": "flipper",
+      "name": "Flipper Zero",
+      "version": "1.2.0",
+      "bytes": 12352,
+      "sha256": "45c1d942c3362f0f9630db633a603299e2e3ebd4bab4084b22fced246bba406f",
+      "file": "flipper.fap",
+      "url": "https://raw.githubusercontent.com/cmong67/flipper-mouse-bridge/main/releases/hid-emu-2.3/HID_Emu_Flipper_1.2.0.fap",
+      "target": 7,
+      "apiMajor": 87,
+      "apiMinor": 1
+    }
+  ]
+}

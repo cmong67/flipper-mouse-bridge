@@ -2,6 +2,10 @@ import AppKit
 @main struct Tests {
  static func main() {
   supportTests()
+  assert(TelemetrySchedule.next(hostDue:true,observationDue:true,lastHost:10,lastObservation:9) == .observation)
+  assert(TelemetrySchedule.next(hostDue:true,observationDue:true,lastHost:9,lastObservation:10) == .host)
+  assert(TelemetrySchedule.next(hostDue:false,observationDue:true,lastHost:9,lastObservation:10) == .observation)
+  assert(TelemetrySchedule.next(hostDue:false,observationDue:false,lastHost:0,lastObservation:0) == .none)
   assert(FlipperCommands.translate("click")==nil)
   assert(FlipperCommands.translate("double")==nil)
   assert(FlipperCommands.translate("click right")==MouseCommand.click(2,1))
